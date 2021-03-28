@@ -55,6 +55,7 @@
 static portMUX_TYPE param_lock = portMUX_INITIALIZER_UNLOCKED;
 
 /***************************************************************/
+#include "include/EthernetW5500.h"
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
 #define EXAMPLE_DO_CONNECT \
@@ -365,9 +366,9 @@ static void setup_reg_data(void) {
     input_reg_params.input_data7 = 4.78;
 }
 
-esp_netif_t* get_example_netif(void) {
-    return s_example_esp_netif;
-}
+//esp_netif_t* get_example_netif(void) {
+//    return s_example_esp_netif;
+//}
 
 // An example application of Modbus slave. It is based on freemodbus stack.
 // See deviceparams.h file for more information about assigned Modbus
@@ -388,7 +389,8 @@ void app_main(void) {
     esp_netif_init();
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    ESP_ERROR_CHECK(example_connect());
+//    ESP_ERROR_CHECK(example_connect());
+    EthernetW5500 ethMenager = EthernetW5500();
 
     //    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
 
@@ -408,7 +410,7 @@ void app_main(void) {
     comm_info.ip_addr_type = MB_IPV4;
     comm_info.ip_mode = MB_MODE_TCP;
     comm_info.ip_addr = NULL;
-    comm_info.ip_netif_ptr = (void*) get_example_netif();
+    comm_info.ip_netif_ptr = (void*) EthernetW5500::netif;
     // Setup communication parameters and start stack
     ESP_ERROR_CHECK(mbc_slave_setup((void*) &comm_info));
 
