@@ -9,7 +9,7 @@
 #include <string>
 #define SPI_MOSI_PIN 23
 #define SPI_MISO_PIN 19
-#define SPI_CLK_PIN 19
+#define SPI_CLK_PIN 18
 #define SPI_CS_PIN 5
 #define SPI_CLOCK_MHZ 20
 #define ETH_INT_PIN 4
