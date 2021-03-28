@@ -2,6 +2,7 @@
 # in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.5)
 
+set(CMAKE_CXX_STANDARD 17)
 # This component includes modbus example common definitions
 set(EXTRA_COMPONENT_DIRS $ENV{IDF_PATH}/examples/protocols/modbus/mb_example_common)
 
@@ -11,4 +12,3 @@ list(APPEND EXTRA_COMPONENT_DIRS $ENV{IDF_PATH}/examples/common_components/proto
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(EspEthW5500Modbus)
-set(CMAKE_CXX_STANDARD 17)

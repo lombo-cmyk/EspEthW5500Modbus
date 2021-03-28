@@ -12,11 +12,11 @@
 #include "esp_err.h"
 #include "sdkconfig.h"
 #include "esp_log.h"
-
+#include <sstream>
 #include "esp_system.h"
 #include "esp_event.h"
 #include "nvs_flash.h"
-
+#include <utility>
 #include "esp_netif.h"
 
 #include "mbcontroller.h"       // for mbcontroller defines and api
@@ -79,6 +79,7 @@ static void on_got_ip(void *arg, esp_event_base_t event_base,
     auto event = (ip_event_got_ip_t *)event_data;
     ESP_LOGI(TAG.c_str(), "Got IPv4 event: Interface \"%s\" address: " IPSTR, esp_netif_get_desc(event->esp_netif), IP2STR(&event->ip_info.ip));
     xSemaphoreGive(s_semph_get_ip_addrs);
+    ESP_LOGI(TAG.c_str(), "Realeasing sem");
 }
 
 
@@ -140,6 +141,10 @@ static esp_netif_t *eth_start(void)
     eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
     phy_config.phy_addr = CONFIG_EXAMPLE_ETH_PHY_ADDR; //to be replaced with custom define
     phy_config.reset_gpio_num = CONFIG_EXAMPLE_ETH_PHY_RST_GPIO; //to be replaced with custom define
+//    std::unique_ptr<esp_eth_mac_t> s_mac(esp_eth_mac_new_w5500(&w5500_config, &mac_config));
+//    std::unique_ptr<esp_eth_phy_t> s_phy(esp_eth_phy_new_w5500(&phy_config));
+//    auto s_mac = std::make_unique<esp_eth_mac_t>(*esp_eth_mac_new_w5500(&w5500_config, &mac_config));
+//    auto s_phy = std::make_unique<esp_eth_phy_t>(*esp_eth_phy_new_w5500(&phy_config));
     s_mac.reset(esp_eth_mac_new_w5500(&w5500_config, &mac_config));
     s_phy.reset(esp_eth_phy_new_w5500(&phy_config));
     /* initialize w5500 ethernet driver stop */
@@ -222,7 +227,9 @@ esp_err_t example_connect(void)
     s_semph_get_ip_addrs = xSemaphoreCreateCounting(1, 0);
     ESP_ERROR_CHECK(esp_register_shutdown_handler(&stop));
     ESP_LOGI(TAG.c_str(), "Waiting for IP(s)");
+    ESP_LOGI(TAG.c_str(), "Sem waiting");
     xSemaphoreTake(s_semph_get_ip_addrs, portMAX_DELAY);
+    ESP_LOGI(TAG.c_str(), "After sem take");
     // iterate over active interfaces, and print out IPs of "our" netifs
     esp_netif_t *netif = nullptr;
     esp_netif_ip_info_t ip;
