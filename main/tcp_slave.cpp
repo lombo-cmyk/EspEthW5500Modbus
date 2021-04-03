@@ -5,22 +5,15 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 #include <cstdio>
-#include <memory>
-#include <array>
-#include <string>
 #include <cstring>
 #include "esp_err.h"
 #include "sdkconfig.h"
 #include "esp_log.h"
-#include <sstream>
-#include "esp_system.h"
 #include "esp_event.h"
 #include "nvs_flash.h"
-#include <utility>
 #include "esp_netif.h"
 
 #include "mbcontroller.h" // for mbcontroller defines and api
-//#include "modbus_params.h"      // for modbus parameters structures
 
 #define MB_TCP_PORT_NUMBER (CONFIG_FMB_TCP_PORT_DEFAULT)
 #define MB_MDNS_PORT (502)
@@ -54,214 +47,7 @@
 
 static portMUX_TYPE param_lock = portMUX_INITIALIZER_UNLOCKED;
 
-/***************************************************************/
 #include "include/EthernetW5500.h"
-#include "driver/gpio.h"
-#include "driver/spi_master.h"
-#define EXAMPLE_DO_CONNECT \
-    CONFIG_EXAMPLE_CONNECT_WIFI || CONFIG_EXAMPLE_CONNECT_ETHERNET
-static const std::string TAG = "ETH Connection module";
-static esp_netif_t* s_example_esp_netif = NULL;
-static xSemaphoreHandle s_semph_get_ip_addrs;
-static esp_ip4_addr_t s_ip_addr;
-static std::unique_ptr<esp_eth_mac_t> s_mac;
-static std::unique_ptr<esp_eth_phy_t> s_phy;
-static esp_eth_handle_t s_eth_handle = NULL;
-static void* s_eth_glue = NULL;
-
-static bool isOurNetif(const std::string& str1, esp_netif_t* netif) {
-    std::string str2 = esp_netif_get_desc(netif);
-    return str1 == str2.substr(0, str1.length());
-}
-
-// it's only an information about getting new IP
-static void on_got_ip(void* arg,
-                      esp_event_base_t event_base,
-                      int32_t event_id,
-                      void* event_data) {
-    auto event = (ip_event_got_ip_t*) event_data;
-    ESP_LOGI(TAG.c_str(),
-             "Got IPv4 event: Interface \"%s\" address: " IPSTR,
-             esp_netif_get_desc(event->esp_netif),
-             IP2STR(&event->ip_info.ip));
-    xSemaphoreGive(s_semph_get_ip_addrs);
-    ESP_LOGI(TAG.c_str(), "Realeasing sem");
-}
-
-static esp_netif_t* eth_start(void) {
-    /*create netif start */
-    esp_netif_inherent_config_t
-        esp_netif_config = ESP_NETIF_INHERENT_DEFAULT_ETH();
-    std::string netif_description = TAG + ": " +
-                                    static_cast<std::string>(
-                                        esp_netif_config.if_desc);
-    esp_netif_config.if_desc = netif_description.c_str();
-    esp_netif_config.route_prio = 64;
-    esp_netif_config_t netif_config = {
-        .base = &esp_netif_config,
-        .stack = ESP_NETIF_NETSTACK_DEFAULT_ETH};
-
-    esp_netif_t* netif = esp_netif_new(&netif_config);
-    assert(netif);
-    /*create netif stop*/
-
-    /*register tcp handlers start*/
-    ESP_ERROR_CHECK(esp_eth_set_default_handlers(netif));
-    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT,
-                                               IP_EVENT_ETH_GOT_IP,
-                                               &on_got_ip,
-                                               NULL));
-    /*register tcp handlers stop*/
-
-    /*Initialize SPI with some constants start*/
-    gpio_install_isr_service(0); // probably done in final project?
-    spi_device_handle_t spi_handle = NULL;
-    spi_bus_config_t buscfg = {
-        .mosi_io_num = CONFIG_EXAMPLE_ETH_SPI_MOSI_GPIO, // to be replaced with
-                                                         // custom define
-        .miso_io_num = CONFIG_EXAMPLE_ETH_SPI_MISO_GPIO, // to be replaced with
-                                                         // custom define
-        .sclk_io_num = CONFIG_EXAMPLE_ETH_SPI_SCLK_GPIO, // to be replaced with
-                                                         // custom define
-        .quadwp_io_num = -1,
-        .quadhd_io_num = -1,
-    };
-    ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, 1));
-
-    spi_device_interface_config_t devcfg = {
-        .command_bits = 16, // Actually it's the address phase in W5500 SPI
-                            // frame
-        .address_bits = 8, // Actually it's the control phase in W5500 SPI
-                           // frame
-        .mode = 0,
-        .clock_speed_hz = CONFIG_EXAMPLE_ETH_SPI_CLOCK_MHZ * 1000 *
-                          1000, // to be replaced with custom define, 20?
-        .spics_io_num = CONFIG_EXAMPLE_ETH_SPI_CS_GPIO, // to be replaced with
-                                                        // custom define
-        .queue_size = 20};
-    ESP_ERROR_CHECK(spi_bus_add_device(SPI2_HOST, &devcfg, &spi_handle));
-    /*Initialize SPI with some constants stop*/
-
-    /* initialize w5500 ethernet driver start */
-    eth_w5500_config_t w5500_config = ETH_W5500_DEFAULT_CONFIG(spi_handle);
-    w5500_config.int_gpio_num = CONFIG_EXAMPLE_ETH_SPI_INT_GPIO; // 4 for now
-
-    eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
-    eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
-    phy_config.phy_addr = CONFIG_EXAMPLE_ETH_PHY_ADDR; // to be replaced with
-                                                       // custom define
-    phy_config
-        .reset_gpio_num = CONFIG_EXAMPLE_ETH_PHY_RST_GPIO; // to be replaced
-                                                           // with custom define
-    //    std::unique_ptr<esp_eth_mac_t>
-    //    s_mac(esp_eth_mac_new_w5500(&w5500_config, &mac_config));
-    //    std::unique_ptr<esp_eth_phy_t>
-    //    s_phy(esp_eth_phy_new_w5500(&phy_config)); auto s_mac =
-    //    std::make_unique<esp_eth_mac_t>(*esp_eth_mac_new_w5500(&w5500_config,
-    //    &mac_config)); auto s_phy =
-    //    std::make_unique<esp_eth_phy_t>(*esp_eth_phy_new_w5500(&phy_config));
-    s_mac.reset(esp_eth_mac_new_w5500(&w5500_config, &mac_config));
-    s_phy.reset(esp_eth_phy_new_w5500(&phy_config));
-    /* initialize w5500 ethernet driver stop */
-
-    /* Install Ethernet driver*/
-    esp_eth_config_t config = ETH_DEFAULT_CONFIG(s_mac.get(), s_phy.get());
-    ESP_ERROR_CHECK(esp_eth_driver_install(&config, &s_eth_handle));
-    /* Install Ethernet driver*/
-
-    /* Set w5500 mac addr*/
-    std::array<uint8_t, 6> mac_arr = {0x02, 0x00, 0x00, 0x12, 0x34, 0x56};
-    ESP_ERROR_CHECK(
-        esp_eth_ioctl(s_eth_handle, ETH_CMD_S_MAC_ADDR, mac_arr.data()));
-    /* Set w5500 mac addr*/
-
-    /*Start ethernet connection*/
-    s_eth_glue = esp_eth_new_netif_glue(s_eth_handle);
-    esp_netif_attach(netif, s_eth_glue);
-    esp_eth_start(s_eth_handle);
-    /*Start ethernet connection*/
-
-    return netif;
-}
-
-#define NR_OF_IP_ADDRESSES_TO_WAIT_FOR (s_active_interfaces)
-
-static int s_active_interfaces = 0;
-
-esp_netif_t* get_example_netif_from_desc(const char* desc) {
-    esp_netif_t* netif = NULL;
-    char* expected_desc;
-    asprintf(&expected_desc, "%s: %s", TAG.c_str(), desc);
-    while ((netif = esp_netif_next(netif)) != NULL) {
-        if (strcmp(esp_netif_get_desc(netif), expected_desc) == 0) {
-            free(expected_desc);
-            return netif;
-        }
-    }
-    free(expected_desc);
-    return netif;
-}
-
-static void eth_stop(void) {
-    esp_netif_t* netif = NULL;
-    std::string netif_description = TAG + ": eth";
-    while ((netif = esp_netif_next(netif)) != NULL) {
-        std::string str2 = esp_netif_get_desc(netif);
-        if (netif_description == str2.substr(0, netif_description.length())) {
-            break;
-        }
-    }
-    esp_netif_t* eth_netif = netif;
-    ESP_ERROR_CHECK(esp_event_handler_unregister(IP_EVENT,
-                                                 IP_EVENT_ETH_GOT_IP,
-                                                 &on_got_ip));
-
-    ESP_ERROR_CHECK(esp_eth_stop(s_eth_handle));
-    ESP_ERROR_CHECK(esp_eth_del_netif_glue(s_eth_glue));
-    ESP_ERROR_CHECK(esp_eth_clear_default_handlers(eth_netif));
-    ESP_ERROR_CHECK(esp_eth_driver_uninstall(s_eth_handle));
-
-    esp_netif_destroy(eth_netif);
-    s_example_esp_netif = NULL;
-}
-
-/* tear down connection, release resources */
-static void stop(void) {
-    eth_stop();
-}
-
-esp_err_t example_connect(void) {
-    s_example_esp_netif = eth_start();
-
-    /* create semaphore if at least one interface is active  and wait for IP*/
-    s_semph_get_ip_addrs = xSemaphoreCreateCounting(1, 0);
-    ESP_ERROR_CHECK(esp_register_shutdown_handler(&stop));
-    ESP_LOGI(TAG.c_str(), "Waiting for IP(s)");
-    ESP_LOGI(TAG.c_str(), "Sem waiting");
-    xSemaphoreTake(s_semph_get_ip_addrs, portMAX_DELAY);
-    ESP_LOGI(TAG.c_str(), "After sem take");
-    // iterate over active interfaces, and print out IPs of "our" netifs
-    esp_netif_t* netif = nullptr;
-    esp_netif_ip_info_t ip;
-    // esp_netif_get_handle_from_ifkey!!!!
-    for (int i = 0; i < esp_netif_get_nr_of_ifs(); ++i) {
-        ESP_LOGI(TAG.c_str(), "Some shitty ESP netif FOR");
-        netif = esp_netif_next(netif);
-        if (isOurNetif(TAG.c_str(), netif)) {
-            ESP_LOGI(TAG.c_str(),
-                     "Connected to %s",
-                     esp_netif_get_desc(netif));
-            ESP_ERROR_CHECK(esp_netif_get_ip_info(netif, &ip));
-
-            ESP_LOGI(TAG.c_str(), "- IPv4 address: " IPSTR, IP2STR(&ip.ip));
-        }
-    }
-    /*Make sure IP is assigned before proceeding*/
-
-    return ESP_OK;
-}
-
-/************************************************************/
 
 #pragma pack(push, 1)
 typedef struct {
@@ -324,7 +110,6 @@ extern input_reg_params_t input_reg_params;
 extern coil_reg_params_t coil_reg_params;
 extern discrete_reg_params_t discrete_reg_params;
 
-/**********************************************************/
 
 // Set register values into known state
 static void setup_reg_data(void) {
