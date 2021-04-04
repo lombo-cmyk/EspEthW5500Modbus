@@ -15,15 +15,17 @@ void* EthernetW5500::s_eth_glue = nullptr;
 esp_netif_t* EthernetW5500::netif = nullptr;
 
 EthernetW5500::EthernetW5500() {
-createNetworkInterface();
-configureSpiBus();
-configureW5500Driver();
-installSpiEthernet();
-startEthernet();
-waitForIP();
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    createNetworkInterface();
+    configureSpiBus();
+    configureW5500Driver();
+    installSpiEthernet();
+    startEthernet();
+    waitForIP();
 }
 
 void EthernetW5500::createNetworkInterface() {
+    esp_netif_init();
     esp_netif_inherent_config_t netIfBaseCfg = ESP_NETIF_INHERENT_DEFAULT_ETH();
     std::string netIfTag = EthTag + ": " +
                            static_cast<std::string>(netIfBaseCfg.if_desc);

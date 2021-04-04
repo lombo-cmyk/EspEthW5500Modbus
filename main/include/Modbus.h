@@ -11,13 +11,20 @@
 class Modbus {
 public:
     explicit Modbus(esp_netif_t* networkInterface);
-    void RunSlave();
+    static void RunSlave(void* pvParameters);
+
 private:
     void SetupSlave(esp_netif_t* networkInterface);
     void RegisterDescriptors();
     void SetHoldingReg();
     void SetInputReg();
     void SetCoildReg();
+    template<std::size_t B>
+    void FillTempBit(
+        std::bitset<B>& bitField); // todo: this is only temp filling function
+    template<std::size_t B>
+    void FillTempArray(
+        std::array<float, B>& arr); // todo: this is only temp filling function
 
     void SetDiscreteReg();
     static void StartSlave();
@@ -27,8 +34,6 @@ private:
     input_reg_params_t input_reg_params{};
     coil_reg_params_t coil_reg_params{};
     discrete_reg_params_t discrete_reg_params{};
-
-
 };
 
 #endif // ESPETHW5500MODBUS_MODBUS_H

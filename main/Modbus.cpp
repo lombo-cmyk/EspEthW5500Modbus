@@ -6,18 +6,7 @@
 #include "include/Definitions.h"
 #include "esp_log.h"
 
-#define HOLD_OFFSET(field) \
-    ((uint16_t)(offsetof(holding_reg_params_t, field) >> 1))
-#define INPUT_OFFSET(field) \
-    ((uint16_t)(offsetof(input_reg_params_t, field) >> 1))
-#define MB_REG_DISCRETE_INPUT_START (0x0000)
-#define MB_REG_COILS_START (0x0000)
-#define MB_REG_INPUT_START_AREA0 \
-    0 //(INPUT_OFFSET(input_data0)) // register offset input area 0
-#define MB_REG_INPUT_START_AREA1 \
-    158 //(INPUT_OFFSET(input_data4)) // register offset input area 1
-#define MB_REG_HOLDING_START_AREA0 (HOLD_OFFSET(holding_data0))
-#define MB_REG_HOLDING_START_AREA1 (HOLD_OFFSET(holding_data4))
+
 #define MB_PAR_INFO_GET_TOUT (10) // Timeout for get parameter info
 #define MB_READ_MASK \
     (MB_EVENT_INPUT_REG_RD | MB_EVENT_HOLDING_REG_RD | MB_EVENT_DISCRETE_RD | \
@@ -27,8 +16,7 @@
 
 Modbus::Modbus(esp_netif_t* networkInterface) {
     void* mbc_slave_handler = nullptr;
-    ESP_ERROR_CHECK(mbc_slave_init_tcp(
-        &mbc_slave_handler));
+    ESP_ERROR_CHECK(mbc_slave_init_tcp(&mbc_slave_handler));
     SetupSlave(networkInterface);
 }
 void Modbus::SetupSlave(esp_netif_t* networkInterface) {
@@ -39,7 +27,6 @@ void Modbus::SetupSlave(esp_netif_t* networkInterface) {
     comm_info.ip_addr = nullptr;
     comm_info.ip_netif_ptr = (void*) networkInterface;
 
-
     ESP_ERROR_CHECK(mbc_slave_setup((void*) &comm_info));
     RegisterDescriptors();
     StartSlave();
@@ -49,46 +36,43 @@ void Modbus::RegisterDescriptors() {
     SetInputReg();
     SetCoildReg();
     SetDiscreteReg();
+    FillTempBit(coil_reg_params);
+    FillTempBit(discrete_reg_params);
+    FillTempArray(holding_reg_params);
+    FillTempArray(input_reg_params);
 }
 void Modbus::SetHoldingReg() {
     mb_register_area_descriptor_t reg_area{
-        .start_offset = MB_REG_HOLDING_START_AREA0,
+        .start_offset = 0,
         .type = MB_PARAM_HOLDING,
-        .address = (void*) &holding_reg_params.holding_data0,
-        .size = sizeof(float) << 2
-    };
+        .address = (void*) &holding_reg_params,
+        .size = sizeof(holding_reg_params)};
     ESP_ERROR_CHECK(mbc_slave_set_descriptor(reg_area));
-
 }
 void Modbus::SetInputReg() {
     mb_register_area_descriptor_t reg_area{
-        .start_offset = MB_REG_INPUT_START_AREA0,
+        .start_offset = 0,
         .type = MB_PARAM_INPUT,
-        .address = (void*) &input_reg_params.input_data0,
-        .size = sizeof(float) << 2
-    };
+        .address = (void*) &input_reg_params,
+        .size = sizeof(input_reg_params)};
     ESP_ERROR_CHECK(mbc_slave_set_descriptor(reg_area));
-
 }
 void Modbus::SetCoildReg() {
-    mb_register_area_descriptor_t reg_area{
-        .start_offset = MB_REG_COILS_START,
-        .type = MB_PARAM_COIL,
-        .address = (void*) &coil_reg_params,
-        .size = sizeof(coil_reg_params)
-    };
+    mb_register_area_descriptor_t reg_area{.start_offset = 0,
+                                           .type = MB_PARAM_COIL,
+                                           .address = (void*) &coil_reg_params,
+                                           .size = coil_reg_params.size() / 8};
+    ESP_LOGI(ModbusTag.c_str(), "COILD SIZE: %zu", reg_area.size);
+    ESP_LOGI(ModbusTag.c_str(), "COILD SIZE: %u", coil_reg_params.size() / 8);
     ESP_ERROR_CHECK(mbc_slave_set_descriptor(reg_area));
-
 }
 void Modbus::SetDiscreteReg() {
     mb_register_area_descriptor_t reg_area{
-        .start_offset = MB_REG_DISCRETE_INPUT_START,
+        .start_offset = 0,
         .type = MB_PARAM_DISCRETE,
         .address = (void*) &discrete_reg_params,
-        .size = sizeof(discrete_reg_params)
-    };
+        .size = discrete_reg_params.size() / 8};
     ESP_ERROR_CHECK(mbc_slave_set_descriptor(reg_area));
-
 }
 void Modbus::StartSlave() {
     ESP_ERROR_CHECK(mbc_slave_start());
@@ -96,7 +80,7 @@ void Modbus::StartSlave() {
     ESP_LOGI(ModbusTag.c_str(), "Modbus slave stack initialized.");
     ESP_LOGI(ModbusTag.c_str(), "Start modbus test...");
 }
-void Modbus::RunSlave() {
+void Modbus::RunSlave(void* pvParameters) {
     for (;;) {
         ESP_LOGI(ModbusTag.c_str(), "Checking slave events");
         mb_event_group_t event = mbc_slave_check_event(
@@ -106,7 +90,8 @@ void Modbus::RunSlave() {
         if (event & (MB_EVENT_HOLDING_REG_WR | MB_EVENT_HOLDING_REG_RD)) {
             ESP_LOGI(ModbusTag.c_str(), "Slave event HOLDING REG");
             mb_param_info_t reg_info;
-            ESP_ERROR_CHECK(mbc_slave_get_param_info(&reg_info, MB_PAR_INFO_GET_TOUT));
+            ESP_ERROR_CHECK(
+                mbc_slave_get_param_info(&reg_info, MB_PAR_INFO_GET_TOUT));
             LogDetails(reg_info);
         } else if (event & MB_EVENT_INPUT_REG_RD) {
             ESP_LOGI(ModbusTag.c_str(), "Slave event INPUT REG");
@@ -121,7 +106,7 @@ void Modbus::RunSlave() {
                 mbc_slave_get_param_info(&reg_info, MB_PAR_INFO_GET_TOUT));
             LogDetails(reg_info);
         } else if (event & (MB_EVENT_COILS_RD | MB_EVENT_COILS_WR)) {
-            ESP_LOGI(ModbusTag.c_str(), "Slave event COILD REG");
+            ESP_LOGI(ModbusTag.c_str(), "Slave event COIL REG");
             mb_param_info_t reg_info;
             ESP_ERROR_CHECK(
                 mbc_slave_get_param_info(&reg_info, MB_PAR_INFO_GET_TOUT));
@@ -141,5 +126,16 @@ void Modbus::LogDetails(const mb_param_info_t& reg_info) {
              (uint32_t) reg_info.type,
              (uint32_t) reg_info.address,
              (uint32_t) reg_info.size);
-
+}
+template<std::size_t B>
+void Modbus::FillTempBit(std::bitset<B>& bitField) {
+    for (std::size_t i = 0; i < bitField.size(); i++) {
+        bitField.set(i, i % 2);
+    }
+}
+template<std::size_t B>
+void Modbus::FillTempArray(std::array<float, B>& arr) {
+    for (std::size_t i = 0; i < arr.size(); i++) {
+        arr[i] = i;
+    }
 }
