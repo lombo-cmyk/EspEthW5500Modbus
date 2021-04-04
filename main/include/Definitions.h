@@ -13,6 +13,8 @@
 #define SPI_CS_PIN 5
 #define SPI_CLOCK_MHZ 20
 #define ETH_INT_PIN 4
-const std::string EthTag = "ETH Connection module";
 
+#define MODBUS_TCP_PORT 502
+const std::string EthTag = "ETH Connection module";
+const std::string ModbusTag = "SLAVE_TEST";
 #endif // ESPETHW5500MODBUS_DEFINITIONS_H

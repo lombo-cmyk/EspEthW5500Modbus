@@ -37,14 +37,14 @@ private:
     esp_eth_phy_s* phy=nullptr;
     spi_device_handle_t spi_handle = nullptr;
     static void* s_eth_glue;
-    spi_bus_config_t buscfg = {
+    static constexpr spi_bus_config_t buscfg = {
         .mosi_io_num = SPI_MOSI_PIN,
         .miso_io_num = SPI_MISO_PIN,
         .sclk_io_num = SPI_CLK_PIN,
         .quadwp_io_num = -1,
         .quadhd_io_num = -1,
     };
-    spi_device_interface_config_t devcfg = {
+    static constexpr spi_device_interface_config_t devcfg = {
         .command_bits = 16, // it's the address phase in W5500 SPI frame
         .address_bits = 8, // it's the control phase in W5500 SPI frame
         .mode = 0,
