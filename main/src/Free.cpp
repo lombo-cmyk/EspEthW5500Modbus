@@ -6,7 +6,6 @@
 #include "esp_log.h"
 #include "esp_event.h"
 #include "EthernetW5500.h"
-#include "Definitions.h"
 
 static xSemaphoreHandle sem_ip;
 
@@ -24,7 +23,7 @@ static void onGotIpHandler(void* arg,
 }
 
 static void ethernetStopHandler() {
-    esp_netif_t* tmp_netif = NULL;
+    esp_netif_t* tmp_netif = nullptr;
     std::string netif_description = EthTag + ": eth";
     while ((tmp_netif = esp_netif_next(tmp_netif)) != nullptr) {
         std::string str2 = esp_netif_get_desc(tmp_netif);

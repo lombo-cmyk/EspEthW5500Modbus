@@ -2,12 +2,12 @@
 // Created by lukaszk on 28.03.2021.
 //
 
-#include "include/EthernetW5500.h"
+#include "EthernetW5500.h"
 #include <tuple>
 
 #include "esp_event.h"
 #include "esp_log.h"
-#include "include/Free.cpp"
+#include "Free.cpp"
 
 EthernetW5500::EthernetW5500() {
     ESP_ERROR_CHECK(esp_event_loop_create_default());
