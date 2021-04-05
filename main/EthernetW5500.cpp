@@ -29,6 +29,7 @@ void EthernetW5500::createNetworkInterface() {
     netIfBaseCfg.if_desc = netIfTag.c_str();
     netIfBaseCfg.route_prio = 64;
     esp_netif_config_t netIfCfg = {.base = &netIfBaseCfg,
+                                   .driver = nullptr,
                                    .stack = ESP_NETIF_NETSTACK_DEFAULT_ETH};
 
     netif = esp_netif_new(&netIfCfg);

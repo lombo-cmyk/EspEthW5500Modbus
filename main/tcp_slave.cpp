@@ -52,7 +52,7 @@ void app_main(void) {
 
     auto& ethManager = EthernetW5500::getInstance();
     auto modbusManager = Modbus(ethManager.netif);
-    
+
     ESP_LOGI(ModbusTag.c_str(), "FREE HEAP: %d", esp_get_free_heap_size());
     static uint8_t ucParameterToPass;
     TaskHandle_t xHandle = NULL;

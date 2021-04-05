@@ -42,14 +42,25 @@ private:
         .sclk_io_num = SPI_CLK_PIN,
         .quadwp_io_num = -1,
         .quadhd_io_num = -1,
+        .max_transfer_sz = 0,
+        .flags = 0,
+        .intr_flags = 0
     };
     static constexpr spi_device_interface_config_t devcfg = {
         .command_bits = 16, // it's the address phase in W5500 SPI frame
         .address_bits = 8, // it's the control phase in W5500 SPI frame
+        .dummy_bits = 0,
         .mode = 0,
+        .duty_cycle_pos = 0,
+        .cs_ena_pretrans = 0,
+        .cs_ena_posttrans = 0,
         .clock_speed_hz = SPI_CLOCK_MHZ * 1000 * 1000,
+        .input_delay_ns = 0,
         .spics_io_num = SPI_CS_PIN,
-        .queue_size = 20};
+        .flags = 0,
+        .queue_size = 20,
+        .pre_cb = nullptr,
+        .post_cb = nullptr};
     std::array<uint8_t, 6> mac_arr = {0x02, 0x00, 0x00, 0x12, 0x34, 0x56};
 };
 
