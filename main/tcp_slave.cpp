@@ -37,10 +37,26 @@ void app_main(void) {
     //    Modbus::RunSlaveTask();
 
     for (;;) {
-        modbusManager.UpdateHoldingRegs();
-        modbusManager.UpdateInputRegs();
-        modbusManager.UpdateCoilRegs();
-        modbusManager.UpdateDiscreteRegs();
+        holding_reg_params_t regHolding = modbusManager.GetHoldingRegs();
+        input_reg_params_t regInput=modbusManager.GetInputRegs();
+        coil_reg_params_t regCoil=modbusManager.GetCoilRegs();
+        discrete_reg_params_t regDiscrete=modbusManager.GetDiscreteRegs();
+        for(auto& val: regHolding){
+            val+=1;
+        }
+        for(auto& val: regInput){
+            val+=1;
+        }
+        for (std::size_t i = 0; i < regCoil.size(); i++) {
+            regCoil.set(i, !regCoil[i]);
+        }
+        for (std::size_t i = 0; i < regDiscrete.size(); i++) {
+            regDiscrete.set(i, !regDiscrete[i]);
+        }
+        modbusManager.UpdateHoldingRegs(regHolding);
+        modbusManager.UpdateInputRegs(regInput);
+        modbusManager.UpdateCoilRegs(regCoil);
+        modbusManager.UpdateDiscreteRegs(regDiscrete);
         vTaskDelay(1000);
     }
 }

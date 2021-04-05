@@ -140,32 +140,24 @@ void Modbus::FillTempArray(std::array<float, B>& arr) {
         arr[i] = i;
     }
 }
-void Modbus::UpdateHoldingRegs() {
+void Modbus::UpdateHoldingRegs(const holding_reg_params_t& reg) {
     vPortEnterCritical(&modbusMutex);
-    for (auto& val : holding_reg_params) {
-        val += 1;
-    }
+    holding_reg_params = reg;
     vPortExitCritical(&modbusMutex);
 }
 
-void Modbus::UpdateInputRegs() {
+void Modbus::UpdateInputRegs(const input_reg_params_t& reg) {
     vPortEnterCritical(&modbusMutex);
-    for (auto& val : input_reg_params) {
-        val += 1;
-    }
+    input_reg_params = reg;
     vPortExitCritical(&modbusMutex);
 }
-void Modbus::UpdateCoilRegs() {
+void Modbus::UpdateCoilRegs(const coil_reg_params_t& reg) {
     vPortEnterCritical(&modbusMutex);
-    for (std::size_t i = 0; i < coil_reg_params.size(); i++) {
-        coil_reg_params.set(i, !coil_reg_params[i]);
-    }
+    coil_reg_params = reg;
     vPortExitCritical(&modbusMutex);
 }
-void Modbus::UpdateDiscreteRegs() {
+void Modbus::UpdateDiscreteRegs(const discrete_reg_params_t& reg) {
     vPortEnterCritical(&modbusMutex);
-    for (std::size_t i = 0; i < discrete_reg_params.size(); i++) {
-        discrete_reg_params.set(i, !discrete_reg_params[i]);
-    }
+    discrete_reg_params = reg;
     vPortExitCritical(&modbusMutex);
 }

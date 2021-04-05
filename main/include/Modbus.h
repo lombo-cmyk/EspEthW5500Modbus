@@ -15,10 +15,23 @@ public:
 
     Modbus();
     void static RunSlaveTask(void* pvParameters);
-    void UpdateHoldingRegs(); // todo: To replace as desired
-    void UpdateInputRegs(); // todo: To replace as desired
-    void UpdateCoilRegs(); // todo: To replace as desired
-    void UpdateDiscreteRegs(); // todo: To replace as desired
+    void UpdateHoldingRegs(const holding_reg_params_t& reg); // todo: To replace as desired
+    void UpdateInputRegs(const input_reg_params_t& reg); // todo: To replace as desired
+    void UpdateCoilRegs(const coil_reg_params_t& reg); // todo: To replace as desired
+    void UpdateDiscreteRegs(const discrete_reg_params_t& reg); // todo: To replace as desired
+
+    auto GetHoldingRegs() const -> const holding_reg_params_t&{
+        return holding_reg_params;
+    }
+    auto GetInputRegs() const -> const input_reg_params_t&{
+        return input_reg_params;
+    }
+    auto GetCoilRegs() const -> const coil_reg_params_t&{
+        return coil_reg_params;
+    }
+    auto GetDiscreteRegs() const -> const discrete_reg_params_t&{
+        return discrete_reg_params;
+    }
 
 private:
     void SetupSlave(esp_netif_t* networkInterface);
