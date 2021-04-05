@@ -61,6 +61,10 @@ void app_main(void) {
     //    Modbus::RunSlaveTask();
 
     for (;;) {
-        vTaskDelay(10000);
+        modbusManager.UpdateHoldingRegs();
+        modbusManager.UpdateInputRegs();
+        modbusManager.UpdateCoilRegs();
+        modbusManager.UpdateDiscreteRegs();
+        vTaskDelay(1000);
     }
 }

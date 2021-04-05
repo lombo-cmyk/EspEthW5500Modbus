@@ -15,6 +15,10 @@ public:
 
     Modbus();
     void static RunSlaveTask(void* pvParameters);
+    void UpdateHoldingRegs(); // todo: To replace as desired
+    void UpdateInputRegs(); // todo: To replace as desired
+    void UpdateCoilRegs(); // todo: To replace as desired
+    void UpdateDiscreteRegs(); // todo: To replace as desired
 
 private:
     void SetupSlave(esp_netif_t* networkInterface);

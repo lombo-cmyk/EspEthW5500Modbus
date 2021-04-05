@@ -17,4 +17,5 @@
 #define MODBUS_TCP_PORT 502
 const std::string EthTag = "ETH Connection module";
 const std::string ModbusTag = "SLAVE_TEST";
+static portMUX_TYPE modbusMutex = portMUX_INITIALIZER_UNLOCKED;
 #endif // ESPETHW5500MODBUS_DEFINITIONS_H
