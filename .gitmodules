@@ -1,0 +1,3 @@
+[submodule "components/CppSingletonTemplate"]
+	path = components/CppSingletonTemplate
+	url = https://github.com/lombo-cmyk/CppSingletonTemplate

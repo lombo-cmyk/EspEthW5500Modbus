@@ -50,14 +50,19 @@ void app_main(void) {
     }
     ESP_ERROR_CHECK(result);
 
-    EthernetW5500 ethMenager = EthernetW5500();
-    Modbus modbusManager = Modbus(EthernetW5500::netif);
-    //    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
+    auto& ethManager = EthernetW5500::getInstance();
+    auto modbusManager = Modbus(ethManager.netif);
+    
     ESP_LOGI(ModbusTag.c_str(), "FREE HEAP: %d", esp_get_free_heap_size());
     static uint8_t ucParameterToPass;
     TaskHandle_t xHandle = NULL;
-    xTaskCreate(Modbus::RunSlave, "Modbus_task", 2048, &ucParameterToPass, 5, &xHandle);
-//    Modbus::RunSlave();
+    xTaskCreate(Modbus::RunSlaveTask,
+                "Modbus_task",
+                2048,
+                &ucParameterToPass,
+                5,
+                &xHandle);
+//    Modbus::RunSlaveTask();
 
     for(;;){
         vTaskDelay(10000);

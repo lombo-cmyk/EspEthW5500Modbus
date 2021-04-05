@@ -80,7 +80,7 @@ void Modbus::StartSlave() {
     ESP_LOGI(ModbusTag.c_str(), "Modbus slave stack initialized.");
     ESP_LOGI(ModbusTag.c_str(), "Start modbus test...");
 }
-void Modbus::RunSlave(void* pvParameters) {
+void Modbus::RunSlaveTask(void* pvParameters) {
     for (;;) {
         ESP_LOGI(ModbusTag.c_str(), "Checking slave events");
         mb_event_group_t event = mbc_slave_check_event(

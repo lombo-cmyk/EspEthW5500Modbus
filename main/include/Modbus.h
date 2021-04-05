@@ -4,14 +4,14 @@
 
 #ifndef ESPETHW5500MODBUS_MODBUS_H
 #define ESPETHW5500MODBUS_MODBUS_H
-#include "include/ModbusStructures.h"
-#include "mbcontroller.h" // for mbcontroller defines and api
-#include "ModbusStructures.h"
 #include "esp_netif.h"
+#include "mbcontroller.h"
+#include "ModbusStructures.h"
+
 class Modbus {
 public:
     explicit Modbus(esp_netif_t* networkInterface);
-    static void RunSlave(void* pvParameters);
+    static void RunSlaveTask(void* pvParameters);
 
 private:
     void SetupSlave(esp_netif_t* networkInterface);

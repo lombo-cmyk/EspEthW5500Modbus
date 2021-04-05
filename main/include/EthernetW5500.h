@@ -7,36 +7,35 @@
 #include <string>
 #include <array>
 #include <memory>
-
 #include "Definitions.h"
+#include "Singleton.h"
 
 #include "esp_netif.h"
 #include "driver/spi_master.h"
 
-class EthernetW5500 {
+class EthernetW5500 final : public Singleton<EthernetW5500> {
 public:
-    EthernetW5500();
-    static esp_netif_t* netif;
-private:
+    friend Singleton<EthernetW5500>;
 
+    EthernetW5500();
+    esp_eth_handle_t s_eth_handle{};
+    esp_netif_t* netif = nullptr;
+    void* s_eth_glue = nullptr;
+
+private:
     void createNetworkInterface();
-    void registerTcpHandlers();
+    void registerTcpHandlers() const;
     void configureSpiBus();
     void configureW5500Driver();
     void installSpiEthernet();
     void startEthernet();
 
-    void waitForIP();
-
-    static void stop();
+    static void waitForIP();
 
     static bool isOurNetIf(const std::string& str1, esp_netif_t* netif);
-
-    static esp_eth_handle_t s_eth_handle;
-    esp_eth_mac_t* mac=nullptr;
-    esp_eth_phy_s* phy=nullptr;
+    esp_eth_mac_t* mac = nullptr;
+    esp_eth_phy_s* phy = nullptr;
     spi_device_handle_t spi_handle = nullptr;
-    static void* s_eth_glue;
     static constexpr spi_bus_config_t buscfg = {
         .mosi_io_num = SPI_MOSI_PIN,
         .miso_io_num = SPI_MISO_PIN,

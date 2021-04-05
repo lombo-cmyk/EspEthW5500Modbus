@@ -2,4 +2,4 @@
 set(CMAKE_CXX_STANDARD 17)
 
 idf_component_register(SRCS "tcp_slave.cpp" "EthernetW5500.cpp" "include/Free.cpp" "Modbus.cpp"
-                    INCLUDE_DIRS ".")
+        INCLUDE_DIRS "include")
