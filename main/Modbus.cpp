@@ -5,7 +5,7 @@
 #include "include/Modbus.h"
 #include "include/Definitions.h"
 #include "esp_log.h"
-
+#include "EthernetW5500.h"
 
 #define MB_PAR_INFO_GET_TOUT (10) // Timeout for get parameter info
 #define MB_READ_MASK \
@@ -14,10 +14,11 @@
 #define MB_WRITE_MASK (MB_EVENT_HOLDING_REG_WR | MB_EVENT_COILS_WR)
 #define MB_READ_WRITE_MASK (MB_READ_MASK | MB_WRITE_MASK)
 
-Modbus::Modbus(esp_netif_t* networkInterface) {
+Modbus::Modbus() {
     void* mbc_slave_handler = nullptr;
     ESP_ERROR_CHECK(mbc_slave_init_tcp(&mbc_slave_handler));
-    SetupSlave(networkInterface);
+    auto& ethManager = EthernetW5500::getInstance();
+    SetupSlave(ethManager.netif);
 }
 void Modbus::SetupSlave(esp_netif_t* networkInterface) {
     mb_communication_info_t comm_info{};

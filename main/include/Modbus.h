@@ -7,11 +7,14 @@
 #include "esp_netif.h"
 #include "mbcontroller.h"
 #include "ModbusStructures.h"
+#include "Singleton.h"
 
-class Modbus {
+class Modbus final : public Singleton<Modbus> {
 public:
-    explicit Modbus(esp_netif_t* networkInterface);
-    static void RunSlaveTask(void* pvParameters);
+    friend Singleton<Modbus>;
+
+    Modbus();
+    void static RunSlaveTask(void* pvParameters);
 
 private:
     void SetupSlave(esp_netif_t* networkInterface);

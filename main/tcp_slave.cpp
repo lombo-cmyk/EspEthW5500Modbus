@@ -13,10 +13,8 @@
 #include "nvs_flash.h"
 #include "esp_netif.h"
 
-
 #define MB_TCP_PORT_NUMBER (CONFIG_FMB_TCP_PORT_DEFAULT)
 #define MB_MDNS_PORT (502)
-
 
 #define MB_PAR_INFO_GET_TOUT (10) // Timeout for get parameter info
 #define MB_CHAN_DATA_MAX_VAL (10)
@@ -28,11 +26,9 @@
 #define MB_WRITE_MASK (MB_EVENT_HOLDING_REG_WR | MB_EVENT_COILS_WR)
 #define MB_READ_WRITE_MASK (MB_READ_MASK | MB_WRITE_MASK)
 
-
 #include "include/EthernetW5500.h"
 #include "include/ModbusStructures.h"
 #include "include/Modbus.h"
-
 
 extern "C" {
 void app_main();
@@ -51,7 +47,7 @@ void app_main(void) {
     ESP_ERROR_CHECK(result);
 
     auto& ethManager = EthernetW5500::getInstance();
-    auto modbusManager = Modbus(ethManager.netif);
+    auto& modbusManager = Modbus::getInstance();
 
     ESP_LOGI(ModbusTag.c_str(), "FREE HEAP: %d", esp_get_free_heap_size());
     static uint8_t ucParameterToPass;
@@ -62,9 +58,9 @@ void app_main(void) {
                 &ucParameterToPass,
                 5,
                 &xHandle);
-//    Modbus::RunSlaveTask();
+    //    Modbus::RunSlaveTask();
 
-    for(;;){
+    for (;;) {
         vTaskDelay(10000);
     }
 }
