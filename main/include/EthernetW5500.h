@@ -7,7 +7,7 @@
 #include <string>
 #include <array>
 #include <memory>
-#include "Definitions.h"
+#include "ModbusDefinitions.h"
 #include "Singleton.h"
 
 #include "esp_netif.h"

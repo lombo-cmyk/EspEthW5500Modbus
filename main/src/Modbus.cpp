@@ -3,7 +3,7 @@
 //
 
 #include "Modbus.h"
-#include "Definitions.h"
+#include "ModbusDefinitions.h"
 #include "esp_log.h"
 #include "EthernetW5500.h"
 

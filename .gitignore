@@ -36,4 +36,3 @@
 build/
 cmake-build-debug/
 main/tcp_slave.cpp
-CMakeLists.txt
