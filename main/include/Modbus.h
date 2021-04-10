@@ -15,22 +15,27 @@ public:
 
     Modbus();
     void static RunSlaveTask(void* pvParameters);
-    void UpdateHoldingRegs(const holding_reg_params_t& reg); // todo: To replace as desired
-    void UpdateInputRegs(const input_reg_params_t& reg); // todo: To replace as desired
-    void UpdateCoilRegs(const coil_reg_params_t& reg); // todo: To replace as desired
-    void UpdateDiscreteRegs(const discrete_reg_params_t& reg); // todo: To replace as desired
 
-    auto GetHoldingRegs() const -> const holding_reg_params_t&{
-        return holding_reg_params;
+    /* As mutex might need to be used before directly updating register values
+     * (i.e. 1. Take reg values 2. change one value 3. Update register)
+     * blocking functions are commented out and should be taken care by outside
+     * application*/
+    void UpdateHoldingRegs(const holdingRegParams_t& reg);
+    void UpdateInputRegs(const inputRegParams_t& reg);
+    void UpdateCoilRegs(const coilRegParams_t& reg);
+    void UpdateDiscreteRegs(const discreteRegParams_t& reg);
+
+    auto GetHoldingRegs() const -> const holdingRegParams_t& {
+        return holdingRegisters_;
     }
-    auto GetInputRegs() const -> const input_reg_params_t&{
-        return input_reg_params;
+    auto GetInputRegs() const -> const inputRegParams_t& {
+        return inputRegisters_;
     }
-    auto GetCoilRegs() const -> const coil_reg_params_t&{
-        return coil_reg_params;
+    auto GetCoilRegs() const -> const coilRegParams_t& {
+        return coilRegisters_;
     }
-    auto GetDiscreteRegs() const -> const discrete_reg_params_t&{
-        return discrete_reg_params;
+    auto GetDiscreteRegs() const -> const discreteRegParams_t& {
+        return discreteRegisters_;
     }
 
 private:
@@ -50,10 +55,10 @@ private:
     static void StartSlave();
     static void LogDetails(const mb_param_info_t& reg_info);
 
-    holding_reg_params_t holding_reg_params{};
-    input_reg_params_t input_reg_params{};
-    coil_reg_params_t coil_reg_params{};
-    discrete_reg_params_t discrete_reg_params{};
+    holdingRegParams_t holdingRegisters_{};
+    inputRegParams_t inputRegisters_{};
+    coilRegParams_t coilRegisters_{};
+    discreteRegParams_t discreteRegisters_{};
 };
 
 #endif // ESPETHW5500MODBUS_MODBUS_H

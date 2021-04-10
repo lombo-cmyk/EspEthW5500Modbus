@@ -15,6 +15,7 @@
 #define ETH_INT_PIN 4
 
 #define MODBUS_TCP_PORT 502
+#define MODBUS_PARAM_TIMEOUT 10
 const std::string EthTag = "ETH Connection module";
 const std::string ModbusTag = "SLAVE_TEST";
 static portMUX_TYPE modbusMutex = portMUX_INITIALIZER_UNLOCKED;

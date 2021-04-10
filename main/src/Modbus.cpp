@@ -7,7 +7,6 @@
 #include "esp_log.h"
 #include "EthernetW5500.h"
 
-#define MB_PAR_INFO_GET_TOUT (10) // Timeout for get parameter info
 #define MB_READ_MASK \
     (MB_EVENT_INPUT_REG_RD | MB_EVENT_HOLDING_REG_RD | MB_EVENT_DISCRETE_RD | \
      MB_EVENT_COILS_RD)
@@ -15,20 +14,20 @@
 #define MB_READ_WRITE_MASK (MB_READ_MASK | MB_WRITE_MASK)
 
 Modbus::Modbus() {
-    void* mbc_slave_handler = nullptr;
-    ESP_ERROR_CHECK(mbc_slave_init_tcp(&mbc_slave_handler));
+    void* mbcSlaveHandler = nullptr;
+    ESP_ERROR_CHECK(mbc_slave_init_tcp(&mbcSlaveHandler));
     auto& ethManager = EthernetW5500::getInstance();
     SetupSlave(ethManager.netif);
 }
 void Modbus::SetupSlave(esp_netif_t* networkInterface) {
-    mb_communication_info_t comm_info{};
-    comm_info.ip_mode = MB_MODE_TCP;
-    comm_info.ip_port = MODBUS_TCP_PORT;
-    comm_info.ip_addr_type = MB_IPV4;
-    comm_info.ip_addr = nullptr;
-    comm_info.ip_netif_ptr = (void*) networkInterface;
+    mb_communication_info_t commInfo{};
+    commInfo.ip_mode = MB_MODE_TCP;
+    commInfo.ip_port = MODBUS_TCP_PORT;
+    commInfo.ip_addr_type = MB_IPV4;
+    commInfo.ip_addr = nullptr;
+    commInfo.ip_netif_ptr = (void*) networkInterface;
 
-    ESP_ERROR_CHECK(mbc_slave_setup((void*) &comm_info));
+    ESP_ERROR_CHECK(mbc_slave_setup((void*) &commInfo));
     RegisterDescriptors();
     StartSlave();
 }
@@ -37,49 +36,47 @@ void Modbus::RegisterDescriptors() {
     SetInputReg();
     SetCoildReg();
     SetDiscreteReg();
-    FillTempBit(coil_reg_params);
-    FillTempBit(discrete_reg_params);
-    FillTempArray(holding_reg_params);
-    FillTempArray(input_reg_params);
+    FillTempBit(coilRegisters_);
+    FillTempBit(discreteRegisters_);
+    FillTempArray(holdingRegisters_);
+    FillTempArray(inputRegisters_);
 }
 void Modbus::SetHoldingReg() {
-    mb_register_area_descriptor_t reg_area{
+    mb_register_area_descriptor_t holdingRegArea{
         .start_offset = 0,
         .type = MB_PARAM_HOLDING,
-        .address = (void*) &holding_reg_params,
-        .size = sizeof(holding_reg_params)};
-    ESP_ERROR_CHECK(mbc_slave_set_descriptor(reg_area));
+        .address = (void*) &holdingRegisters_,
+        .size = sizeof(holdingRegisters_)};
+    ESP_ERROR_CHECK(mbc_slave_set_descriptor(holdingRegArea));
 }
 void Modbus::SetInputReg() {
-    mb_register_area_descriptor_t reg_area{
+    mb_register_area_descriptor_t inputRegArea{
         .start_offset = 0,
         .type = MB_PARAM_INPUT,
-        .address = (void*) &input_reg_params,
-        .size = sizeof(input_reg_params)};
-    ESP_ERROR_CHECK(mbc_slave_set_descriptor(reg_area));
+        .address = (void*) &inputRegisters_,
+        .size = sizeof(inputRegisters_)};
+    ESP_ERROR_CHECK(mbc_slave_set_descriptor(inputRegArea));
 }
 void Modbus::SetCoildReg() {
-    mb_register_area_descriptor_t reg_area{.start_offset = 0,
-                                           .type = MB_PARAM_COIL,
-                                           .address = (void*) &coil_reg_params,
-                                           .size = coil_reg_params.size() / 8};
-    ESP_LOGI(ModbusTag.c_str(), "COILD SIZE: %zu", reg_area.size);
-    ESP_LOGI(ModbusTag.c_str(), "COILD SIZE: %u", coil_reg_params.size() / 8);
-    ESP_ERROR_CHECK(mbc_slave_set_descriptor(reg_area));
+    mb_register_area_descriptor_t coildRegArea{
+        .start_offset = 0,
+        .type = MB_PARAM_COIL,
+        .address = (void*) &coilRegisters_,
+        .size = coilRegisters_.size() / 8};
+    ESP_ERROR_CHECK(mbc_slave_set_descriptor(coildRegArea));
 }
 void Modbus::SetDiscreteReg() {
-    mb_register_area_descriptor_t reg_area{
+    mb_register_area_descriptor_t discreteRegArea{
         .start_offset = 0,
         .type = MB_PARAM_DISCRETE,
-        .address = (void*) &discrete_reg_params,
-        .size = discrete_reg_params.size() / 8};
-    ESP_ERROR_CHECK(mbc_slave_set_descriptor(reg_area));
+        .address = (void*) &discreteRegisters_,
+        .size = discreteRegisters_.size() / 8};
+    ESP_ERROR_CHECK(mbc_slave_set_descriptor(discreteRegArea));
 }
 void Modbus::StartSlave() {
     ESP_ERROR_CHECK(mbc_slave_start());
 
     ESP_LOGI(ModbusTag.c_str(), "Modbus slave stack initialized.");
-    ESP_LOGI(ModbusTag.c_str(), "Start modbus test...");
 }
 void Modbus::RunSlaveTask(void* pvParameters) {
     for (;;) {
@@ -92,25 +89,25 @@ void Modbus::RunSlaveTask(void* pvParameters) {
             ESP_LOGI(ModbusTag.c_str(), "Slave event HOLDING REG");
             mb_param_info_t reg_info;
             ESP_ERROR_CHECK(
-                mbc_slave_get_param_info(&reg_info, MB_PAR_INFO_GET_TOUT));
+                mbc_slave_get_param_info(&reg_info, MODBUS_PARAM_TIMEOUT));
             LogDetails(reg_info);
         } else if (event & MB_EVENT_INPUT_REG_RD) {
             ESP_LOGI(ModbusTag.c_str(), "Slave event INPUT REG");
             mb_param_info_t reg_info;
             ESP_ERROR_CHECK(
-                mbc_slave_get_param_info(&reg_info, MB_PAR_INFO_GET_TOUT));
+                mbc_slave_get_param_info(&reg_info, MODBUS_PARAM_TIMEOUT));
             LogDetails(reg_info);
         } else if (event & MB_EVENT_DISCRETE_RD) {
             ESP_LOGI(ModbusTag.c_str(), "Slave event DISCRETE REG");
             mb_param_info_t reg_info;
             ESP_ERROR_CHECK(
-                mbc_slave_get_param_info(&reg_info, MB_PAR_INFO_GET_TOUT));
+                mbc_slave_get_param_info(&reg_info, MODBUS_PARAM_TIMEOUT));
             LogDetails(reg_info);
         } else if (event & (MB_EVENT_COILS_RD | MB_EVENT_COILS_WR)) {
             ESP_LOGI(ModbusTag.c_str(), "Slave event COIL REG");
             mb_param_info_t reg_info;
             ESP_ERROR_CHECK(
-                mbc_slave_get_param_info(&reg_info, MB_PAR_INFO_GET_TOUT));
+                mbc_slave_get_param_info(&reg_info, MODBUS_PARAM_TIMEOUT));
             LogDetails(reg_info);
         }
     }
@@ -140,24 +137,24 @@ void Modbus::FillTempArray(std::array<float, B>& arr) {
         arr[i] = i;
     }
 }
-void Modbus::UpdateHoldingRegs(const holding_reg_params_t& reg) {
-    vPortEnterCritical(&modbusMutex);
-    holding_reg_params = reg;
-    vPortExitCritical(&modbusMutex);
+void Modbus::UpdateHoldingRegs(const holdingRegParams_t& reg) {
+    //    vPortEnterCritical(&modbusMutex);
+    holdingRegisters_ = reg;
+    //    vPortExitCritical(&modbusMutex);
 }
 
-void Modbus::UpdateInputRegs(const input_reg_params_t& reg) {
-    vPortEnterCritical(&modbusMutex);
-    input_reg_params = reg;
-    vPortExitCritical(&modbusMutex);
+void Modbus::UpdateInputRegs(const inputRegParams_t& reg) {
+    //    vPortEnterCritical(&modbusMutex);
+    inputRegisters_ = reg;
+    //    vPortExitCritical(&modbusMutex);
 }
-void Modbus::UpdateCoilRegs(const coil_reg_params_t& reg) {
-    vPortEnterCritical(&modbusMutex);
-    coil_reg_params = reg;
-    vPortExitCritical(&modbusMutex);
+void Modbus::UpdateCoilRegs(const coilRegParams_t& reg) {
+    //    vPortEnterCritical(&modbusMutex);
+    coilRegisters_ = reg;
+    //    vPortExitCritical(&modbusMutex);
 }
-void Modbus::UpdateDiscreteRegs(const discrete_reg_params_t& reg) {
-    vPortEnterCritical(&modbusMutex);
-    discrete_reg_params = reg;
-    vPortExitCritical(&modbusMutex);
+void Modbus::UpdateDiscreteRegs(const discreteRegParams_t& reg) {
+    //    vPortEnterCritical(&modbusMutex);
+    discreteRegisters_ = reg;
+    //    vPortExitCritical(&modbusMutex);
 }

@@ -9,19 +9,19 @@
 #include <bitset>
 
 #pragma pack(push, 1)
-typedef std::bitset<8> coil_reg_params_t;
+typedef std::bitset<8> coilRegParams_t;
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-typedef std::bitset<8> discrete_reg_params_t;
+typedef std::bitset<8> discreteRegParams_t;
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-typedef std::array<float, 8> input_reg_params_t;
+typedef std::array<float, 8> inputRegParams_t;
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-typedef std::array<float, 8> holding_reg_params_t;
+typedef std::array<float, 8> holdingRegParams_t;
 #pragma pack(pop)
 
 #endif // ESPETHW5500MODBUS_MODBUSSTRUCTURES_H
