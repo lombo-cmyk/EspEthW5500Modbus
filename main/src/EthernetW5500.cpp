@@ -32,12 +32,12 @@ void EthernetW5500::createNetworkInterface() {
                                    .driver = nullptr,
                                    .stack = ESP_NETIF_NETSTACK_DEFAULT_ETH};
 
-    netif = esp_netif_new(&netIfCfg);
-    assert(netif);
+    pNetworkInterface_ = esp_netif_new(&netIfCfg);
+    assert(pNetworkInterface_);
     registerTcpHandlers();
 }
 void EthernetW5500::registerTcpHandlers() const {
-    ESP_ERROR_CHECK(esp_eth_set_default_handlers(netif));
+    ESP_ERROR_CHECK(esp_eth_set_default_handlers(pNetworkInterface_));
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT,
                                                IP_EVENT_ETH_GOT_IP,
                                                &onGotIpHandler,
@@ -46,30 +46,31 @@ void EthernetW5500::registerTcpHandlers() const {
 void EthernetW5500::configureSpiBus() {
     gpio_install_isr_service(0); // probably done in final project?
 
-    ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, 1));
-    ESP_ERROR_CHECK(spi_bus_add_device(SPI2_HOST, &devcfg, &spi_handle));
+    ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &spiBusCfg_, 1));
+    ESP_ERROR_CHECK(
+        spi_bus_add_device(SPI2_HOST, &spiDeviceCfg_, &pSpiHandle_));
 }
 void EthernetW5500::configureW5500Driver() {
-    eth_w5500_config_t w5500_config = ETH_W5500_DEFAULT_CONFIG(spi_handle);
+    eth_w5500_config_t w5500_config = ETH_W5500_DEFAULT_CONFIG(pSpiHandle_);
     w5500_config.int_gpio_num = ETH_INT_PIN; // 4 for now
 
     eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
     eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
     phy_config.phy_addr = 1;
     phy_config.reset_gpio_num = -1;
-    mac = esp_eth_mac_new_w5500(&w5500_config, &mac_config);
-    phy = esp_eth_phy_new_w5500(&phy_config);
+    pMac_ = esp_eth_mac_new_w5500(&w5500_config, &mac_config);
+    pPhy_ = esp_eth_phy_new_w5500(&phy_config);
 }
 void EthernetW5500::installSpiEthernet() {
-    esp_eth_config_t config = ETH_DEFAULT_CONFIG(mac, phy);
-    ESP_ERROR_CHECK(esp_eth_driver_install(&config, &s_eth_handle));
+    esp_eth_config_t config = ETH_DEFAULT_CONFIG(pMac_, pPhy_);
+    ESP_ERROR_CHECK(esp_eth_driver_install(&config, &ethHandle_));
     ESP_ERROR_CHECK(
-        esp_eth_ioctl(s_eth_handle, ETH_CMD_S_MAC_ADDR, mac_arr.data()));
+        esp_eth_ioctl(ethHandle_, ETH_CMD_S_MAC_ADDR, macAddr_.data()));
 }
 void EthernetW5500::startEthernet() {
-    s_eth_glue = esp_eth_new_netif_glue(s_eth_handle);
-    esp_netif_attach(netif, s_eth_glue);
-    esp_eth_start(s_eth_handle);
+    pEthGlue_ = esp_eth_new_netif_glue(ethHandle_);
+    esp_netif_attach(pNetworkInterface_, pEthGlue_);
+    esp_eth_start(ethHandle_);
 }
 
 void EthernetW5500::waitForIP() {
@@ -80,17 +81,17 @@ void EthernetW5500::waitForIP() {
     xSemaphoreTake(sem_ip, portMAX_DELAY);
     ESP_LOGI(EthTag.c_str(), "After sem take");
     // iterate over active interfaces, and print out IPs of "our" netifs
-    esp_netif_t* nnetif = nullptr;
+    esp_netif_t* pTempNetInterface = nullptr;
     esp_netif_ip_info_t ip;
     // esp_netif_get_handle_from_ifkey!!!!
     for (int i = 0; i < esp_netif_get_nr_of_ifs(); ++i) {
         ESP_LOGI(EthTag.c_str(), "Some shitty ESP netif FOR");
-        nnetif = esp_netif_next(nnetif);
-        if (isOurNetIf(EthTag, nnetif)) {
+        pTempNetInterface = esp_netif_next(pTempNetInterface);
+        if (isOurNetIf(EthTag, pTempNetInterface)) {
             ESP_LOGI(EthTag.c_str(),
                      "Connected to %s",
-                     esp_netif_get_desc(nnetif));
-            ESP_ERROR_CHECK(esp_netif_get_ip_info(nnetif, &ip));
+                     esp_netif_get_desc(pTempNetInterface));
+            ESP_ERROR_CHECK(esp_netif_get_ip_info(pTempNetInterface, &ip));
 
             ESP_LOGI(EthTag.c_str(), "- IPv4 address: " IPSTR, IP2STR(&ip.ip));
         }
@@ -98,7 +99,8 @@ void EthernetW5500::waitForIP() {
     ESP_LOGI(EthTag.c_str(), "No connection sadge");
 }
 
-bool EthernetW5500::isOurNetIf(const std::string& str1, esp_netif_t* nnnetif) {
-    std::string str2 = esp_netif_get_desc(nnnetif);
+bool EthernetW5500::isOurNetIf(const std::string& str1,
+                               esp_netif_t* pTempNetInterface) {
+    std::string str2 = esp_netif_get_desc(pTempNetInterface);
     return str1 == str2.substr(0, str1.length());
 }

@@ -37,11 +37,11 @@ static void ethernetStopHandler() {
                                                  &onGotIpHandler));
 
     auto& ethInstance = EthernetW5500::getInstance();
-    ESP_ERROR_CHECK(esp_eth_stop(ethInstance.s_eth_handle));
-    ESP_ERROR_CHECK(esp_eth_del_netif_glue(ethInstance.s_eth_glue));
+    ESP_ERROR_CHECK(esp_eth_stop(ethInstance.ethHandle_));
+    ESP_ERROR_CHECK(esp_eth_del_netif_glue(ethInstance.pEthGlue_));
     ESP_ERROR_CHECK(esp_eth_clear_default_handlers(eth_netif));
-    ESP_ERROR_CHECK(esp_eth_driver_uninstall(ethInstance.s_eth_handle));
+    ESP_ERROR_CHECK(esp_eth_driver_uninstall(ethInstance.ethHandle_));
 
     esp_netif_destroy(eth_netif);
-    ethInstance.netif = nullptr;
+    ethInstance.pNetworkInterface_ = nullptr;
 }

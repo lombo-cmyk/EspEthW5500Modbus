@@ -17,7 +17,7 @@ Modbus::Modbus() {
     void* mbcSlaveHandler = nullptr;
     ESP_ERROR_CHECK(mbc_slave_init_tcp(&mbcSlaveHandler));
     auto& ethManager = EthernetW5500::getInstance();
-    SetupSlave(ethManager.netif);
+    SetupSlave(ethManager.pNetworkInterface_);
 }
 void Modbus::SetupSlave(esp_netif_t* networkInterface) {
     mb_communication_info_t commInfo{};
