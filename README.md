@@ -1,15 +1,33 @@
 # EspEthW5500Modbus
 ESP Modbus TCP module C++ implementation based on example from ESP-IDF repo. 
 
-EthernetW5500 connects automatically to any DHCP server present after calling 
-`EthernetW5500::getInstance();`.
-By default library is configured to run with SPI2 interface on pins:
+EthernetW5500 connects automatically to any DHCP server present. 
+It's capable of using both ESP32 SPI interfaces, one has to be provided at start.
+Bare minimum to start running Ethernet connection:  
+
+```c++
+    auto& ethManager = EthernetW5500::getInstance();
+    ethManager.SelectSpiInterface(SPI2_HOST); //or SPI3_HOST
+    ethManager.ConfigureAndStart();
+```
+
+Library can run with SPI3(VSPI) interface on pins:  
 > for ESP32 DEVKIT V1 (version with 30 GPIOs).  
 * MOSI 23
 * MISO 19
 * CLK 18
 * CS 5
 * ETH_INT 4  
+
+...or with SPI2(HSPI) interface on pins:  
+> for ESP32 DEVKIT V1 (version with 30 GPIOs).  
+* MOSI 13
+* MISO 12
+* CLK 14
+* CS 15
+* ETH_INT 4 
+
+> todo: enable using any pin as ETH_INT
 
 Calling `Modbus::getInstance()` initializes Modbus Registers and makes Protocol fully functional.  
 Modbus public API enables user to:
@@ -33,7 +51,7 @@ Modbus public API enables user to:
     * Enabling output logging: 
         * Component config &#8594; Log output &#8594; Default log verbosity:
             * Info - Shows all component related logs
-            * Debug - Shows also SPI Ethernet related logs
+            * Debug - Shows also SPI Ethernet related logs (from ESP framework)
 * main.cpp
 
 ```c++
@@ -63,6 +81,8 @@ void app_main(void) {
     ESP_ERROR_CHECK(result);
 
     auto& ethManager = EthernetW5500::getInstance();
+    ethManager.SelectSpiInterface(SPI2_HOST);
+    ethManager.ConfigureAndStart();
     auto& modbusManager = Modbus::getInstance();
 
     static uint8_t ucParameterToPass;

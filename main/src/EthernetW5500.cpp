@@ -12,6 +12,27 @@
 EthernetW5500::EthernetW5500() {
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     createNetworkInterface();
+}
+
+void EthernetW5500::SelectSpiInterface(spi_host_device_t spiInterface) {
+    spiInterface_ = spiInterface;
+    if (spiInterface_ == SPI2_HOST) {
+        spiBusCfg_ = spi_2_BusCfg;
+        spiDeviceCfg_ = spi_2_DeviceCfg;
+    } else if (spiInterface_ == SPI3_HOST) {
+        spiBusCfg_ = spi_3_BusCfg;
+        spiDeviceCfg_ = spi_3_DeviceCfg;
+    } else {
+        ESP_LOGE(EthTag.c_str(),
+                 "Wrong SPI interface selected: %d. Supported interfaces: "
+                 "SPI2_HOST(%d), SPI3_HOST(%d)",
+                 spiInterface,
+                 SPI2_HOST,
+                 SPI3_HOST);
+    }
+}
+
+void EthernetW5500::ConfigureAndStart() {
     configureSpiBus();
     configureW5500Driver();
     installSpiEthernet();
@@ -36,6 +57,7 @@ void EthernetW5500::createNetworkInterface() {
     assert(pNetworkInterface_);
     registerTcpHandlers();
 }
+
 void EthernetW5500::registerTcpHandlers() const {
     ESP_ERROR_CHECK(esp_eth_set_default_handlers(pNetworkInterface_));
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT,
@@ -43,13 +65,15 @@ void EthernetW5500::registerTcpHandlers() const {
                                                &onGotIpHandler,
                                                nullptr));
 }
+
 void EthernetW5500::configureSpiBus() {
     gpio_install_isr_service(0); // probably done in final project?
 
-    ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &spiBusCfg_, 1));
+    ESP_ERROR_CHECK(spi_bus_initialize(spiInterface_, &spiBusCfg_, 1));
     ESP_ERROR_CHECK(
-        spi_bus_add_device(SPI2_HOST, &spiDeviceCfg_, &pSpiHandle_));
+        spi_bus_add_device(spiInterface_, &spiDeviceCfg_, &pSpiHandle_));
 }
+
 void EthernetW5500::configureW5500Driver() {
     eth_w5500_config_t w5500_config = ETH_W5500_DEFAULT_CONFIG(pSpiHandle_);
     w5500_config.int_gpio_num = ETH_INT_PIN; // 4 for now
@@ -61,12 +85,14 @@ void EthernetW5500::configureW5500Driver() {
     pMac_ = esp_eth_mac_new_w5500(&w5500_config, &mac_config);
     pPhy_ = esp_eth_phy_new_w5500(&phy_config);
 }
+
 void EthernetW5500::installSpiEthernet() {
     esp_eth_config_t config = ETH_DEFAULT_CONFIG(pMac_, pPhy_);
     ESP_ERROR_CHECK(esp_eth_driver_install(&config, &ethHandle_));
     ESP_ERROR_CHECK(
         esp_eth_ioctl(ethHandle_, ETH_CMD_S_MAC_ADDR, macAddr_.data()));
 }
+
 void EthernetW5500::startEthernet() {
     pEthGlue_ = esp_eth_new_netif_glue(ethHandle_);
     esp_netif_attach(pNetworkInterface_, pEthGlue_);
