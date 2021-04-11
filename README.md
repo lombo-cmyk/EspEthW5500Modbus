@@ -13,7 +13,7 @@ By default library is configured to run with SPI2 interface on pins:
 
 Calling `Modbus::getInstance()` initializes Modbus Registers and makes Protocol fully functional.  
 Modbus public API enables user to:
-* Start running slave task - responsible for handling Modbus events from Master
+* `static void StartSlave()`- responsible for handling Modbus events from Master
 * Update registers:
     * `void UpdateHoldingRegs(const holdingRegParams_t& reg)`
     * `void UpdateInputRegs(const inputRegParams_t& reg)`
@@ -25,8 +25,16 @@ Modbus public API enables user to:
     * `auto GetCoilRegs() const -> const coilRegParams_t&`
     * `auto GetDiscreteRegs() const -> const discreteRegParams_t&`
 
-**Usage example**
-main.cpp
+**Usage example**  
+* component dependency:
+    * [Singleton Template](https://github.com/lombo-cmyk/CppSingletonTemplate)
+* idf.py menuconfig
+    * Enabling W5500 Ethernet: Component config &#8594; Ethernet &#8594; Suppor SPI to Ethernet Module &#8594; Use W5500 (MAC RAW)
+    * Enabling output logging: 
+        * Component config &#8594; Log output &#8594; Default log verbosity:
+            * Info - Shows all component related logs
+            * Debug - Shows also SPI Ethernet related logs
+* main.cpp
 
 ```c++
 #include <cstdio>
@@ -35,9 +43,9 @@ main.cpp
 #include "esp_event.h"
 #include "nvs_flash.h"
 
-#include "include/EthernetW5500.h"
-#include "include/ModbusStructures.h"
-#include "include/Modbus.h"
+#include "EthernetW5500.h"
+#include "ModbusStructures.h"
+#include "Modbus.h"
 
 extern "C" {
 void app_main();
