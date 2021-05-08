@@ -23,6 +23,8 @@ public:
     esp_eth_handle_t ethHandle_{};
     esp_netif_t* pNetworkInterface_ = nullptr;
     void* pEthGlue_ = nullptr;
+    void PrintShit();
+    void reconfigureDriver();
 
 private:
     void createNetworkInterface();

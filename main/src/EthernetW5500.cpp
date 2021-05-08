@@ -122,11 +122,72 @@ void EthernetW5500::waitForIP() {
             ESP_LOGI(EthTag.c_str(), "- IPv4 address: " IPSTR, IP2STR(&ip.ip));
         }
     }
-    ESP_LOGI(EthTag.c_str(), "No connection sadge");
+//    ESP_LOGI(EthTag.c_str(), "No connection sadge");
 }
 
 bool EthernetW5500::isOurNetIf(const std::string& str1,
                                esp_netif_t* pTempNetInterface) {
     std::string str2 = esp_netif_get_desc(pTempNetInterface);
     return str1 == str2.substr(0, str1.length());
+}
+void EthernetW5500::PrintShit() {
+    esp_netif_t* pTempNetInterface = nullptr;
+    esp_netif_ip_info_t ip;
+    for (int i = 0; i < esp_netif_get_nr_of_ifs(); ++i) {
+        pTempNetInterface = esp_netif_next(pTempNetInterface);
+        if (isOurNetIf(EthTag, pTempNetInterface)) {
+            ESP_ERROR_CHECK(esp_netif_get_ip_info(pTempNetInterface, &ip));
+
+            ESP_LOGW(EthTag.c_str(), "- IPv4 address: " IPSTR, IP2STR(&ip.ip));
+            if (ip.ip.addr == 0){
+                ESP_LOGW(EthTag.c_str(), "***DANGER NO IP DANGER***");
+                ethernetStopHandler();
+                esp_unregister_shutdown_handler(&ethernetStopHandler);
+//                esp_netif_deinit();
+//                esp_eth_stop(ethHandle_);
+//                esp_netif_destroy(pNetworkInterface_);
+//                pNetworkInterface_ = nullptr;
+                esp_netif_init();
+                esp_netif_inherent_config_t
+                    netIfBaseCfg = ESP_NETIF_INHERENT_DEFAULT_ETH(); // todo: replace with
+                // some custom
+                std::string netIfTag = EthTag + ": " +
+                                       static_cast<std::string>(netIfBaseCfg.if_desc);
+                netIfBaseCfg.if_desc = netIfTag.c_str();
+                netIfBaseCfg.route_prio = 64;
+                esp_netif_config_t netIfCfg = {.base = &netIfBaseCfg,
+                    .driver = nullptr,
+                    .stack = ESP_NETIF_NETSTACK_DEFAULT_ETH};
+
+                pNetworkInterface_ = esp_netif_new(&netIfCfg);
+                assert(pNetworkInterface_);
+                registerTcpHandlers();
+//                spi_bus_add_device(spiInterface_, &spiDeviceCfg_, &pSpiHandle_);
+                configureW5500Driver();
+                installSpiEthernet();
+                startEthernet();
+
+                sem_ip = xSemaphoreCreateCounting(1, 0);
+                ESP_ERROR_CHECK(esp_register_shutdown_handler(&ethernetStopHandler));
+                ESP_LOGI(EthTag.c_str(), "Waiting for IP(s)");
+                ESP_LOGI(EthTag.c_str(), "Sem waiting");
+                xSemaphoreTake(sem_ip, portMAX_DELAY);
+                ESP_LOGI(EthTag.c_str(), "After sem take");
+                esp_netif_t* pTempNetInterfaceNEW = nullptr;
+                esp_netif_ip_info_t ipNEW;
+                for (int i = 0; i < esp_netif_get_nr_of_ifs(); ++i) {
+                    pTempNetInterfaceNEW = esp_netif_next(pTempNetInterfaceNEW);
+                    if (isOurNetIf(EthTag, pTempNetInterfaceNEW)) {
+                        ESP_ERROR_CHECK(esp_netif_get_ip_info(pTempNetInterfaceNEW, &ipNEW));
+
+                        ESP_LOGW(EthTag.c_str(), "- IPv4 address: " IPSTR, IP2STR(&ipNEW.ip));
+                    }
+                }
+
+            }
+        }
+    }
+}
+void EthernetW5500::reconfigureDriver() {
+    configureW5500Driver();
 }
