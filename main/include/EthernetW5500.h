@@ -24,13 +24,13 @@ public:
     esp_netif_t* pNetworkInterface_ = nullptr;
     void* pEthGlue_ = nullptr;
     void PrintShit();
+    void configureW5500Driver();
     void reconfigureDriver();
 
 private:
     void createNetworkInterface();
     void registerTcpHandlers() const;
     void configureSpiBus();
-    void configureW5500Driver();
     void installSpiEthernet();
     void startEthernet();
 

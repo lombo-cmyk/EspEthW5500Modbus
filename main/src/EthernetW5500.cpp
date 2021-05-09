@@ -130,17 +130,47 @@ bool EthernetW5500::isOurNetIf(const std::string& str1,
     std::string str2 = esp_netif_get_desc(pTempNetInterface);
     return str1 == str2.substr(0, str1.length());
 }
+
 void EthernetW5500::PrintShit() {
     esp_netif_t* pTempNetInterface = nullptr;
     esp_netif_ip_info_t ip;
+    uint8_t mac[6];
     for (int i = 0; i < esp_netif_get_nr_of_ifs(); ++i) {
         pTempNetInterface = esp_netif_next(pTempNetInterface);
         if (isOurNetIf(EthTag, pTempNetInterface)) {
             ESP_ERROR_CHECK(esp_netif_get_ip_info(pTempNetInterface, &ip));
-
+            esp_netif_get_mac(pTempNetInterface, mac);
             ESP_LOGW(EthTag.c_str(), "- IPv4 address: " IPSTR, IP2STR(&ip.ip));
+            std::array<uint8_t, 6> data{};
+            uint32_t phy_read;
+//            pMac_->get_addr(pMac_, data.data());
+//#define W5500_BSB_COM_REG        (0x00)    // Common Register
+//#define W5500_ADDR_OFFSET (16) // Address length
+//#define W5500_BSB_OFFSET  (3)  // Block Select Bits offset
+//#define W5500_MAKE_MAP(offset, bsb) ((offset) << W5500_ADDR_OFFSET | (bsb) << W5500_BSB_OFFSET)
+//#define W5500_REG_PHYCFGR   W5500_MAKE_MAP(0x002E, W5500_BSB_COM_REG) // PHY Configuration
+//            pMac_->read_phy_reg(pMac_, 1,W5500_REG_PHYCFGR,&phy_read);
+//            ESP_LOGW(EthTag.c_str(), "MAC: %d:%d:%d:%d:%d:%d", data[0],data[1],data[2],data[3],data[4],data[5]);
+//            ESP_LOGW(EthTag.c_str(), "- PHY read %d", phy_read);
+
+//            uint32_t phy_add=88;
+//            pPhy_->get_addr(pPhy_, &phy_add);
+//            ESP_LOGW(EthTag.c_str(), "- PHY %d", phy_add);
             if (ip.ip.addr == 0){
                 ESP_LOGW(EthTag.c_str(), "***DANGER NO IP DANGER***");
+                std::array<uint8_t, 6> macaddr{};
+                uint32_t phy;
+                eth_speed_t speed;
+                eth_duplex_t duplex;
+                esp_eth_ioctl(ethHandle_, ETH_CMD_G_MAC_ADDR, macaddr.data());
+                esp_eth_ioctl(ethHandle_, ETH_CMD_G_PHY_ADDR, &phy);
+                esp_eth_ioctl(ethHandle_, ETH_CMD_G_DUPLEX_MODE, &duplex);
+                esp_eth_ioctl(ethHandle_, ETH_CMD_G_SPEED, &speed);
+                ESP_LOGW(EthTag.c_str(), "MAC ADDR: %x:%x:%x:%x:%x:%x", macaddr[0],macaddr[1],macaddr[2],macaddr[3],macaddr[4],macaddr[5]);
+                ESP_LOGW(EthTag.c_str(), "PHY:      %d", phy);
+                ESP_LOGW(EthTag.c_str(), "Duplex:   %d", duplex);
+                ESP_LOGW(EthTag.c_str(), "Speed:    %d", speed);
+
                 ethernetStopHandler();
                 esp_unregister_shutdown_handler(&ethernetStopHandler);
 //                esp_netif_deinit();
@@ -189,5 +219,22 @@ void EthernetW5500::PrintShit() {
     }
 }
 void EthernetW5500::reconfigureDriver() {
-    configureW5500Driver();
+    std::array<uint8_t, 6> macaddr{};
+    uint32_t phy;
+    eth_speed_t speed;
+    eth_duplex_t duplex;
+    esp_eth_ioctl(ethHandle_, ETH_CMD_G_MAC_ADDR, macaddr.data());
+    esp_eth_ioctl(ethHandle_, ETH_CMD_G_PHY_ADDR, &phy);
+    esp_eth_ioctl(ethHandle_, ETH_CMD_G_DUPLEX_MODE, &duplex);
+    esp_eth_ioctl(ethHandle_, ETH_CMD_G_SPEED, &speed);
+    ESP_LOGW(EthTag.c_str(), "Normal work: MAC ADDR: %x:%x:%x:%x:%x:%x", macaddr[0],macaddr[1],macaddr[2],macaddr[3],macaddr[4],macaddr[5]);
+    ESP_LOGW(EthTag.c_str(), "Normal work: PHY:      %d", phy);
+    ESP_LOGW(EthTag.c_str(), "Normal work: Duplex:   %d", duplex);
+    ESP_LOGW(EthTag.c_str(), "Normal work: Speed:    %d", speed);
+//    configureW5500Driver();
+//    esp_eth_ioctl(ethHandle_, ETH_CMD_S_MAC_ADDR, macAddr_.data());
+//    std::array<uint8_t, 6> mac{};
+//    esp_eth_ioctl(ethHandle_, ETH_CMD_G_MAC_ADDR, mac.data());
+//    ESP_LOGW(EthTag.c_str(), "SANDFKSJDNFKJSNDFKJSD: %d:%d:%d:%d:%d:%d", mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+    // todo: esp_eth_ioctl lekiem na cale zlo???
 }
