@@ -137,16 +137,16 @@ void Modbus::FillTempArray(std::array<float, B>& arr) {
         arr[i] = i;
     }
 }
-void Modbus::UpdateHoldingRegs(const holdingRegParams_t& reg) {
-    //    vPortEnterCritical(&modbusMutex);
-    holdingRegisters_ = reg;
-    //    vPortExitCritical(&modbusMutex);
+void Modbus::UpdateHoldingRegs(const std::uint8_t index, const float& value) {
+    vPortEnterCritical(&modbusMutex);
+    holdingRegisters_[index] = value;
+    vPortExitCritical(&modbusMutex);
 }
 
-void Modbus::UpdateInputRegs(const inputRegParams_t& reg) {
-    //    vPortEnterCritical(&modbusMutex);
-    inputRegisters_ = reg;
-    //    vPortExitCritical(&modbusMutex);
+void Modbus::UpdateInputRegs(const std::uint8_t index, const float& value) {
+    vPortEnterCritical(&modbusMutex);
+    inputRegisters_[index] = value;
+    vPortExitCritical(&modbusMutex);
 }
 void Modbus::UpdateCoilRegs(const coilRegParams_t& reg) {
     //    vPortEnterCritical(&modbusMutex);

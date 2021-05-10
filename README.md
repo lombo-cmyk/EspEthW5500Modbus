@@ -33,8 +33,8 @@ Calling `Modbus::getInstance()` initializes Modbus Registers and makes Protocol 
 Modbus public API enables user to:
 * `static void StartSlave()`- responsible for handling Modbus events from Master
 * Update registers:
-    * `void UpdateHoldingRegs(const holdingRegParams_t& reg)`
-    * `void UpdateInputRegs(const inputRegParams_t& reg)`
+    * `void UpdateHoldingRegs(std::uint8_t index, const float& value)`
+    * `void UpdateInputRegs(std::uint8_t index, const float& value)`
     * `void UpdateCoilRegs(const coilRegParams_t& reg);`
     * `void UpdateDiscreteRegs(const discreteRegParams_t& reg);`
 * Read register values:
@@ -102,12 +102,9 @@ void app_main(void) {
 
 Registers can be updating from outside i.e. by injecting code to the loop:
 ```c++
-        vPortEnterCritical(&modbusMutex);
-        holdingRegParams_t regHolding = modbusManager.GetHoldingRegs();
-        for(auto& val: regHolding){
-            val+=1;
+        holdingRegParams_t regHolding = {0, 1, 2, 3, 4, 5, 6, 7};
+        for(std::size_t i=0; i<regHolding.size(); i++){
+        modbusManager.UpdateHoldingRegs(i, regHolding[i]);
         }
-        modbusManager.UpdateHoldingRegs(regHolding);
-        vPortExitCritical(&modbusMutex);
         vTaskDelay(1000);
 ```
