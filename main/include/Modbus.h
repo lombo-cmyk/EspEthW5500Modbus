@@ -20,8 +20,8 @@ public:
      * (i.e. 1. Take reg values 2. change one value 3. Update register)
      * blocking functions are commented out and should be taken care by outside
      * application*/
-    void UpdateHoldingRegs(const holdingRegParams_t& reg);
-    void UpdateInputRegs(const inputRegParams_t& reg);
+    void UpdateHoldingRegs(std::uint8_t index, const float& value);
+    void UpdateInputRegs(std::uint8_t index, const float& value);
     void UpdateCoilRegs(const coilRegParams_t& reg);
     void UpdateDiscreteRegs(const discreteRegParams_t& reg);
 
