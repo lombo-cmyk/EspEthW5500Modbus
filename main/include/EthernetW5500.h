@@ -25,7 +25,6 @@ public:
     void* pEthGlue_ = nullptr;
     void executeEthernetStatusGuard();
     void configureW5500Driver();
-    void reconfigureDriver();
 
 private:
     void createNetworkInterface();
@@ -34,7 +33,7 @@ private:
     void installSpiEthernet();
     void startEthernet();
 
-    void waitForIP();
+    void waitForIP() const;
     bool isEthernetSanitized();
     static bool isOurNetIf(const std::string& str1, esp_netif_t* pTempNetInterface);
     static std::string createMacString(std::array<uint8_t, 6> mac);

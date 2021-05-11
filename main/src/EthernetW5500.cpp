@@ -101,18 +101,18 @@ void EthernetW5500::startEthernet() {
     esp_eth_start(ethHandle_);
 }
 
-void EthernetW5500::waitForIP() {
+void EthernetW5500::waitForIP() const {
     sem_ip = xSemaphoreCreateCounting(1, 0);
     esp_netif_ip_info_t ip;
     ESP_ERROR_CHECK(esp_register_shutdown_handler(&ethernetStopHandler));
     ESP_LOGI(EthTag.c_str(), "Waiting for IP(s)");
     xSemaphoreTake(sem_ip, SECOND * 15);
-    ESP_LOGI(EthTag.c_str(), "Connected to %s",
+    ESP_LOGI(EthTag.c_str(),
+             "Connected to %s",
              esp_netif_get_desc(pNetworkInterface_));
     ESP_ERROR_CHECK(esp_netif_get_ip_info(pNetworkInterface_, &ip));
     ESP_LOGI(EthTag.c_str(), "- IPv4 address: " IPSTR, IP2STR(&ip.ip));
 }
-
 
 bool EthernetW5500::isOurNetIf(const std::string& str1,
                                esp_netif_t* pTempNetInterface) {
@@ -136,15 +136,16 @@ void EthernetW5500::executeEthernetStatusGuard() {
 
     if (ip.ip.addr == 0 || macaddr != macAddr_ || phy != 1) {
         ESP_LOGE(EthTag.c_str(),
-                 "IP / MAC / PHY Missing. Performing Ethernet reset up to 10 times");
-        for (std::size_t i=0; i<3; i++){
-            if (isEthernetSanitized()){
+                 "IP / MAC / PHY Missing. Performing Ethernet reset up to 3 "
+                 "times");
+        for (std::size_t i = 0; i < 3; i++) {
+            if (isEthernetSanitized()) {
                 break;
             }
-            if (i==2){
+            if (i == 2) {
                 ESP_LOGE(EthTag.c_str(),
                          "Getting IP not possible. Performing SW reset.");
-                vTaskDelay(SECOND*2);
+                vTaskDelay(SECOND * 2);
                 esp_restart();
             }
         }
@@ -162,7 +163,7 @@ bool EthernetW5500::isEthernetSanitized() {
     ConfigureAndStart();
     esp_netif_ip_info_t ip;
     esp_netif_get_ip_info(pNetworkInterface_, &ip);
-    if (ip.ip.addr){
+    if (ip.ip.addr) {
         isEthernet = true;
     }
     return isEthernet;
@@ -176,32 +177,4 @@ std::string EthernetW5500::createMacString(std::array<uint8_t, 6> mac) {
     std::string retMac = oss.str();
     retMac.pop_back();
     return retMac;
-}
-void EthernetW5500::reconfigureDriver() {
-    std::array<uint8_t, 6> macaddr{};
-    uint32_t phy;
-    eth_speed_t speed;
-    eth_duplex_t duplex;
-    esp_eth_ioctl(ethHandle_, ETH_CMD_G_MAC_ADDR, macaddr.data());
-    esp_eth_ioctl(ethHandle_, ETH_CMD_G_PHY_ADDR, &phy);
-    esp_eth_ioctl(ethHandle_, ETH_CMD_G_DUPLEX_MODE, &duplex);
-    esp_eth_ioctl(ethHandle_, ETH_CMD_G_SPEED, &speed);
-    ESP_LOGW(EthTag.c_str(),
-             "Normal work: MAC ADDR: %x:%x:%x:%x:%x:%x",
-             macaddr[0],
-             macaddr[1],
-             macaddr[2],
-             macaddr[3],
-             macaddr[4],
-             macaddr[5]);
-    ESP_LOGW(EthTag.c_str(), "Normal work: PHY:      %d", phy);
-    ESP_LOGW(EthTag.c_str(), "Normal work: Duplex:   %d", duplex);
-    ESP_LOGW(EthTag.c_str(), "Normal work: Speed:    %d", speed);
-    //    configureW5500Driver();
-    //    esp_eth_ioctl(ethHandle_, ETH_CMD_S_MAC_ADDR, macAddr_.data());
-    //    std::array<uint8_t, 6> mac{};
-    //    esp_eth_ioctl(ethHandle_, ETH_CMD_G_MAC_ADDR, mac.data());
-    //    ESP_LOGW(EthTag.c_str(), "SANDFKSJDNFKJSNDFKJSD: %d:%d:%d:%d:%d:%d",
-    //    mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
-    // todo: esp_eth_ioctl lekiem na cale zlo???
 }
