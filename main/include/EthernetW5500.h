@@ -23,20 +23,18 @@ public:
     esp_eth_handle_t ethHandle_{};
     esp_netif_t* pNetworkInterface_ = nullptr;
     void* pEthGlue_ = nullptr;
-    void executeEthernetStatusGuard();
-    void configureW5500Driver();
 
 private:
     void createNetworkInterface();
     void registerTcpHandlers() const;
     void configureSpiBus();
+    void configureW5500Driver();
     void installSpiEthernet();
     void startEthernet();
 
-    void waitForIP() const;
-    bool isEthernetSanitized();
+    static void waitForIP();
+
     static bool isOurNetIf(const std::string& str1, esp_netif_t* pTempNetInterface);
-    static std::string createMacString(std::array<uint8_t, 6> mac);
     spi_host_device_t spiInterface_ = SPI1_HOST;
     spi_bus_config_t spiBusCfg_ {};
     spi_device_interface_config_t spiDeviceCfg_{};

@@ -4,8 +4,6 @@
 
 #include "EthernetW5500.h"
 #include <tuple>
-#include <sstream>
-#include <iomanip>
 
 #include "esp_event.h"
 #include "esp_log.h"
@@ -101,80 +99,34 @@ void EthernetW5500::startEthernet() {
     esp_eth_start(ethHandle_);
 }
 
-void EthernetW5500::waitForIP() const {
+void EthernetW5500::waitForIP() {
     sem_ip = xSemaphoreCreateCounting(1, 0);
-    esp_netif_ip_info_t ip;
     ESP_ERROR_CHECK(esp_register_shutdown_handler(&ethernetStopHandler));
     ESP_LOGI(EthTag.c_str(), "Waiting for IP(s)");
-    xSemaphoreTake(sem_ip, SECOND * 15);
-    ESP_LOGI(EthTag.c_str(),
-             "Connected to %s",
-             esp_netif_get_desc(pNetworkInterface_));
-    ESP_ERROR_CHECK(esp_netif_get_ip_info(pNetworkInterface_, &ip));
-    ESP_LOGI(EthTag.c_str(), "- IPv4 address: " IPSTR, IP2STR(&ip.ip));
+    ESP_LOGI(EthTag.c_str(), "Sem waiting");
+    xSemaphoreTake(sem_ip, portMAX_DELAY);
+    ESP_LOGI(EthTag.c_str(), "After sem take");
+    // iterate over active interfaces, and print out IPs of "our" netifs
+    esp_netif_t* pTempNetInterface = nullptr;
+    esp_netif_ip_info_t ip;
+    // esp_netif_get_handle_from_ifkey!!!!
+    for (int i = 0; i < esp_netif_get_nr_of_ifs(); ++i) {
+        ESP_LOGI(EthTag.c_str(), "Some shitty ESP netif FOR");
+        pTempNetInterface = esp_netif_next(pTempNetInterface);
+        if (isOurNetIf(EthTag, pTempNetInterface)) {
+            ESP_LOGI(EthTag.c_str(),
+                     "Connected to %s",
+                     esp_netif_get_desc(pTempNetInterface));
+            ESP_ERROR_CHECK(esp_netif_get_ip_info(pTempNetInterface, &ip));
+
+            ESP_LOGI(EthTag.c_str(), "- IPv4 address: " IPSTR, IP2STR(&ip.ip));
+        }
+    }
+    ESP_LOGI(EthTag.c_str(), "No connection sadge");
 }
 
 bool EthernetW5500::isOurNetIf(const std::string& str1,
                                esp_netif_t* pTempNetInterface) {
     std::string str2 = esp_netif_get_desc(pTempNetInterface);
     return str1 == str2.substr(0, str1.length());
-}
-
-void EthernetW5500::executeEthernetStatusGuard() {
-    esp_netif_ip_info_t ip;
-    std::array<uint8_t, 6> macaddr{};
-    uint32_t phy;
-
-    ESP_ERROR_CHECK(esp_netif_get_ip_info(pNetworkInterface_, &ip));
-    ESP_ERROR_CHECK(
-        esp_eth_ioctl(ethHandle_, ETH_CMD_G_MAC_ADDR, macaddr.data()));
-    ESP_ERROR_CHECK(esp_eth_ioctl(ethHandle_, ETH_CMD_G_PHY_ADDR, &phy));
-    std::string macStr = createMacString(macaddr);
-    ESP_LOGI(EthTag.c_str(), "IPv4 found: " IPSTR, IP2STR(&ip.ip));
-    ESP_LOGI(EthTag.c_str(), "MAC found: %s", macStr.c_str());
-    ESP_LOGI(EthTag.c_str(), "PHY found: %d", phy);
-
-    if (ip.ip.addr == 0 || macaddr != macAddr_ || phy != 1) {
-        ESP_LOGE(EthTag.c_str(),
-                 "IP / MAC / PHY Missing. Performing Ethernet reset up to 3 "
-                 "times");
-        for (std::size_t i = 0; i < 3; i++) {
-            if (isEthernetSanitized()) {
-                break;
-            }
-            if (i == 2) {
-                ESP_LOGE(EthTag.c_str(),
-                         "Getting IP not possible. Performing SW reset.");
-                vTaskDelay(SECOND * 2);
-                esp_restart();
-            }
-        }
-    }
-}
-
-bool EthernetW5500::isEthernetSanitized() {
-    bool isEthernet = false;
-    ethernetStopHandler();
-    esp_unregister_shutdown_handler(&ethernetStopHandler);
-    spi_bus_remove_device(pSpiHandle_);
-    spi_bus_free(spiInterface_);
-
-    createNetworkInterface();
-    ConfigureAndStart();
-    esp_netif_ip_info_t ip;
-    esp_netif_get_ip_info(pNetworkInterface_, &ip);
-    if (ip.ip.addr) {
-        isEthernet = true;
-    }
-    return isEthernet;
-}
-std::string EthernetW5500::createMacString(std::array<uint8_t, 6> mac) {
-    std::ostringstream oss;
-    oss << std::hex << std::setfill('0');
-    for (auto& val : mac) {
-        oss << std::setw(2) << (unsigned int) val << ":";
-    }
-    std::string retMac = oss.str();
-    retMac.pop_back();
-    return retMac;
 }
