@@ -149,31 +149,34 @@ void Modbus::UpdateInputRegs(const std::uint8_t index, const float& value) {
     inputRegisters_[index] = value;
     vPortExitCritical(&modbusMutex);
 }
-template<std::size_t B>
-void Modbus::UpdateCoilRegs(const std::array<std::uint8_t, B> indexes,
-                            const std::bitset<B> values) {
-    SanitizeInput(indexes, coilRegisters_.size());
-    vPortEnterCritical(&modbusMutex);
-    for (auto& index : indexes) {
-        coilRegisters_.set(index, values[index]);
-    }
-    vPortExitCritical(&modbusMutex);
-}
+// template<std::size_t B>
+// void Modbus::UpdateCoilRegs(const std::array<std::uint8_t, B> indexes,
+//                            const std::bitset<B> values) {
+//    SanitizeInput(indexes, coilRegisters_.size());
+//    vPortEnterCritical(&modbusMutex);
+//    for (std::size_t i=0; i<indexes.size(); i++) {
+//        coilRegisters_.set(indexes[i], values[i]);
+//    }
+//    vPortExitCritical(&modbusMutex);
+//}
 void Modbus::UpdateDiscreteRegs(const discreteRegParams_t& reg) {
     //    vPortEnterCritical(&modbusMutex);
     discreteRegisters_ = reg;
     //    vPortExitCritical(&modbusMutex);
 }
-template<std::size_t B>
-void Modbus::SanitizeInput(std::array<std::uint8_t, B> indexes,
-                           std::uint8_t regSize) {
-    if (indexes.size() > regSize) {
-        throw std::invalid_argument("Too many indexes to unpack!");
-    }
+//template<std::size_t B>
+//void Modbus::SanitizeInput(std::array<std::uint8_t, B> indexes,
+//                           std::uint8_t regSize) {
+//    if (indexes.size() > regSize) {
+//        throw std::invalid_argument("Too many indexes to unpack!");
+//    }
+//    for (auto& index : indexes) {
+//        if (index > (regSize - 1)) {
+//            throw std::invalid_argument("Index number too big!");
+//        }
+//    }
+//}
 
-    for (auto& index : indexes) {
-        if (index > (regSize - 1)) {
-            throw std::invalid_argument("Index number too big!");
-        }
-    }
-}
+// template void Modbus::UpdateCoilRegs(const std::array<std::uint8_t, 4u>
+// indexes,
+//                            const std::bitset<4u> values);

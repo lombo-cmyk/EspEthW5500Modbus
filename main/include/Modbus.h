@@ -6,7 +6,9 @@
 #define ESPETHW5500MODBUS_MODBUS_H
 #include "esp_netif.h"
 #include "mbcontroller.h"
+#include "esp_log.h"
 #include "ModbusStructures.h"
+#include "ModbusDefinitions.h"
 #include "Singleton.h"
 
 class Modbus final : public Singleton<Modbus> {
@@ -16,15 +18,19 @@ public:
     Modbus();
     void static RunSlaveTask(void* pvParameters);
 
-    /* As mutex might need to be used before directly updating register values
-     * (i.e. 1. Take reg values 2. change one value 3. Update register)
-     * blocking functions are commented out and should be taken care by outside
-     * application*/
     void UpdateHoldingRegs(std::uint8_t index, const float& value);
     void UpdateInputRegs(std::uint8_t index, const float& value);
     template<std::size_t B>
-    void UpdateCoilRegs(std::array<std::uint8_t, B> indexes,
-                        std::bitset<B> values);
+    void UpdateCoilRegs(const std::array<std::uint8_t, B>& indexes,
+                                const std::bitset<B>& values) {
+        if(isInputSane(indexes, coilRegisters_.size())){
+            vPortEnterCritical(&modbusMutex);
+            for (std::size_t i=0; i<indexes.size(); i++) {
+                coilRegisters_.set(indexes[i], values[i]);
+            }
+            vPortExitCritical(&modbusMutex);
+        }
+    }
     void UpdateDiscreteRegs(const discreteRegParams_t& reg);
 
     auto GetHoldingRegs() const -> const holdingRegParams_t& {
@@ -55,7 +61,21 @@ private:
 
     void SetDiscreteReg();
     template<std::size_t B>
-    void SanitizeInput(std::array<std::uint8_t, B> indexes, std::uint8_t regSize);
+    bool isInputSane(const std::array<std::uint8_t, B>& indexes,
+                               std::uint8_t regSize) const{
+        bool isSane = true;
+        if (indexes.size() > regSize) {
+            ESP_LOGE(ModbusTag.c_str(), "Too many indexes to unpack!");
+            isSane = false;
+        }
+        for (auto& index : indexes) {
+            if (index > (regSize - 1)) {
+                ESP_LOGE(ModbusTag.c_str(), "Index number too big!");
+                isSane = false;
+            }
+        }
+        return isSane;
+    }
     static void StartSlave();
     static void LogDetails(const mb_param_info_t& reg_info);
 
