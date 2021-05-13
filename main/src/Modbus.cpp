@@ -2,6 +2,7 @@
 // Created by lukaszk on 03.04.2021.
 //
 
+#include <stdexcept>
 #include "Modbus.h"
 #include "ModbusDefinitions.h"
 #include "esp_log.h"
@@ -148,13 +149,31 @@ void Modbus::UpdateInputRegs(const std::uint8_t index, const float& value) {
     inputRegisters_[index] = value;
     vPortExitCritical(&modbusMutex);
 }
-void Modbus::UpdateCoilRegs(const coilRegParams_t& reg) {
-    //    vPortEnterCritical(&modbusMutex);
-    coilRegisters_ = reg;
-    //    vPortExitCritical(&modbusMutex);
+template<std::size_t B>
+void Modbus::UpdateCoilRegs(const std::array<std::uint8_t, B> indexes,
+                            const std::bitset<B> values) {
+    SanitizeInput(indexes, coilRegisters_.size());
+    vPortEnterCritical(&modbusMutex);
+    for (auto& index : indexes) {
+        coilRegisters_.set(index, values[index]);
+    }
+    vPortExitCritical(&modbusMutex);
 }
 void Modbus::UpdateDiscreteRegs(const discreteRegParams_t& reg) {
     //    vPortEnterCritical(&modbusMutex);
     discreteRegisters_ = reg;
     //    vPortExitCritical(&modbusMutex);
+}
+template<std::size_t B>
+void Modbus::SanitizeInput(std::array<std::uint8_t, B> indexes,
+                           std::uint8_t regSize) {
+    if (indexes.size() > regSize) {
+        throw std::invalid_argument("Too many indexes to unpack!");
+    }
+
+    for (auto& index : indexes) {
+        if (index > (regSize - 1)) {
+            throw std::invalid_argument("Index number too big!");
+        }
+    }
 }

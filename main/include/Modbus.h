@@ -22,7 +22,9 @@ public:
      * application*/
     void UpdateHoldingRegs(std::uint8_t index, const float& value);
     void UpdateInputRegs(std::uint8_t index, const float& value);
-    void UpdateCoilRegs(const coilRegParams_t& reg);
+    template<std::size_t B>
+    void UpdateCoilRegs(std::array<std::uint8_t, B> indexes,
+                        std::bitset<B> values);
     void UpdateDiscreteRegs(const discreteRegParams_t& reg);
 
     auto GetHoldingRegs() const -> const holdingRegParams_t& {
@@ -52,6 +54,8 @@ private:
         std::array<float, B>& arr); // todo: this is only temp filling function
 
     void SetDiscreteReg();
+    template<std::size_t B>
+    void SanitizeInput(std::array<std::uint8_t, B> indexes, std::uint8_t regSize);
     static void StartSlave();
     static void LogDetails(const mb_param_info_t& reg_info);
 
