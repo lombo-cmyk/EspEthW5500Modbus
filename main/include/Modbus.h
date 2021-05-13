@@ -17,9 +17,34 @@ public:
 
     Modbus();
     void static RunSlaveTask(void* pvParameters);
-
-    void UpdateHoldingRegs(std::uint8_t index, const float& value);
-    void UpdateInputRegs(std::uint8_t index, const float& value);
+    template<std::size_t B>
+    void UpdateHoldingRegs(const std::array<std::uint8_t, B>& indexes,
+                           const std::array<float, B>& values) {
+        if(isInputSane(indexes, holdingRegisters_.size())){
+            auto index = indexes.cbegin();
+            auto value = values.cbegin();
+            vPortEnterCritical(&modbusMutex);
+            for (; index != indexes.end() and value != values.end() ;
+                 ++index, ++value ) {
+                holdingRegisters_[*index] =  *value;
+            }
+            vPortExitCritical(&modbusMutex);
+        }
+    }
+    template<std::size_t B>
+    void UpdateInputRegs(const std::array<std::uint8_t, B>& indexes,
+                         const std::array<float, B>& values) {
+        if(isInputSane(indexes, inputRegisters_.size())){
+            auto index = indexes.cbegin();
+            auto value = values.cbegin();
+            vPortEnterCritical(&modbusMutex);
+            for (; index != indexes.end() and value != values.end() ;
+                   ++index, ++value ) {
+                inputRegisters_[*index] =  *value;
+            }
+            vPortExitCritical(&modbusMutex);
+        }
+    }
     template<std::size_t B>
     void UpdateCoilRegs(const std::array<std::uint8_t, B>& indexes,
                                 const std::bitset<B>& values) {
@@ -31,8 +56,17 @@ public:
             vPortExitCritical(&modbusMutex);
         }
     }
-    void UpdateDiscreteRegs(const discreteRegParams_t& reg);
-
+    template<std::size_t B>
+    void UpdateDiscreteRegs(const std::array<std::uint8_t, B>& indexes,
+                            const std::bitset<B>& values) {
+        if(isInputSane(indexes, discreteRegisters_.size())){
+            vPortEnterCritical(&modbusMutex);
+            for (std::size_t i=0; i<indexes.size(); i++) {
+                discreteRegisters_.set(indexes[i], values[i]);
+            }
+            vPortExitCritical(&modbusMutex);
+        }
+    }
     auto GetHoldingRegs() const -> const holdingRegParams_t& {
         return holdingRegisters_;
     }
@@ -54,10 +88,10 @@ private:
     void SetCoildReg();
     template<std::size_t B>
     void FillTempBit(
-        std::bitset<B>& bitField); // todo: this is only temp filling function
+        std::bitset<B>& bitField);
     template<std::size_t B>
     void FillTempArray(
-        std::array<float, B>& arr); // todo: this is only temp filling function
+        std::array<float, B>& arr);
 
     void SetDiscreteReg();
     template<std::size_t B>
