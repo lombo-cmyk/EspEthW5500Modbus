@@ -21,7 +21,7 @@ typedef std::array<float, 8> inputRegParams_t;
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-typedef std::array<float, 8> holdingRegParams_t;
+typedef std::array<float, 9> holdingRegParams_t;
 #pragma pack(pop)
 
 #endif // ESPETHW5500MODBUS_MODBUSSTRUCTURES_H
